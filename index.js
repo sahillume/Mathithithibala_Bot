@@ -1,6 +1,6 @@
 /**
  * WhatsApp MD Bot - Main Entry Point
- * BOT: Mathithibala AI
+ * BOT: Mathithibala_Bot
  * OWNER: Professor Sahil
  */
 
