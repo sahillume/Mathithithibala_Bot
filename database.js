@@ -1,5 +1,5 @@
 /**
- * 🔥 Advanced JSON Database System (FIXED + STABLE + SAFE)
+ * 🔥 Mathithibala_Bot Database System (Sahil Pro Safe Version)
  */
 
 const fs = require('fs');
@@ -25,7 +25,9 @@ if (!fs.existsSync(DB_PATH)) {
   fs.mkdirSync(DB_PATH, { recursive: true });
 }
 
-// In-memory cache
+// ===============================
+// 🧠 CACHE
+// ===============================
 const cache = {
   groups: {},
   users: {},
@@ -36,26 +38,26 @@ const cache = {
 // ===============================
 // 📦 SAFE JSON LOAD
 // ===============================
-const safeLoadJSON = (file, defaultData) => {
+const safeLoadJSON = (file, fallback) => {
   try {
     if (!fs.existsSync(file)) {
-      fs.writeFileSync(file, JSON.stringify(defaultData, null, 2));
-      return defaultData;
+      fs.writeFileSync(file, JSON.stringify(fallback, null, 2));
+      return fallback;
     }
 
     const raw = fs.readFileSync(file, 'utf8').trim();
-    if (!raw) return defaultData;
+    if (!raw) return fallback;
 
     return JSON.parse(raw);
   } catch (err) {
-    console.error(`⚠️ Corrupted DB fixed: ${path.basename(file)}`);
-    fs.writeFileSync(file, JSON.stringify(defaultData, null, 2));
-    return defaultData;
+    console.log(`⚠️ Fixed corrupted file: ${path.basename(file)}`);
+    fs.writeFileSync(file, JSON.stringify(fallback, null, 2));
+    return fallback;
   }
 };
 
 // ===============================
-// 📥 LOAD CACHE
+// 📥 LOAD DB
 // ===============================
 const loadAll = () => {
   cache.groups = safeLoadJSON(FILES.groups, {});
@@ -67,27 +69,43 @@ const loadAll = () => {
 loadAll();
 
 // ===============================
-// 💾 SAFE SAVE (ANTI-CORRUPTION)
+// 💾 SAFE WRITE (ATOMIC)
 // ===============================
 const safeWrite = (file, data) => {
   try {
-    const temp = file + '.tmp';
-    fs.writeFileSync(temp, JSON.stringify(data, null, 2));
-    fs.renameSync(temp, file);
+    const tmp = file + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+    fs.renameSync(tmp, file);
     return true;
   } catch (err) {
-    console.error('❌ DB Write Error:', err.message);
+    console.error('❌ DB Save Error:', err.message);
     return false;
   }
 };
 
-// Auto-save every 30 seconds
+// ===============================
+// 💾 AUTO SAVE
+// ===============================
 setInterval(() => {
   safeWrite(FILES.groups, cache.groups);
   safeWrite(FILES.users, cache.users);
   safeWrite(FILES.warnings, cache.warnings);
   safeWrite(FILES.mods, cache.mods);
 }, 30000);
+
+// ===============================
+// 🛑 SAFE SHUTDOWN SAVE (IMPORTANT FIX)
+// ===============================
+process.on('SIGINT', () => {
+  console.log('🛑 Saving DB before shutdown...');
+
+  safeWrite(FILES.groups, cache.groups);
+  safeWrite(FILES.users, cache.users);
+  safeWrite(FILES.warnings, cache.warnings);
+  safeWrite(FILES.mods, cache.mods);
+
+  process.exit();
+});
 
 // ===============================
 // 👥 GROUP SYSTEM
@@ -105,14 +123,14 @@ const getGroupSettings = (groupId) => {
   return cache.groups[groupId];
 };
 
-const updateGroupSettings = (groupId, settings = {}) => {
+const updateGroupSettings = (groupId, data = {}) => {
   if (!groupId) return false;
 
   if (!cache.groups[groupId]) getGroupSettings(groupId);
 
   cache.groups[groupId] = {
     ...cache.groups[groupId],
-    ...settings,
+    ...data,
     updatedAt: Date.now()
   };
 
@@ -132,11 +150,11 @@ const getUser = (userId) => {
       banned: false,
       xp: 0,
       level: 1,
-      lastSeen: Date.now()
+      lastSeen: Date.now(),
+      lastXpGain: 0
     };
   }
 
-  cache.users[userId].lastSeen = Date.now();
   return cache.users[userId];
 };
 
@@ -154,18 +172,26 @@ const updateUser = (userId, data = {}) => {
 };
 
 // ===============================
-// ⭐ XP SYSTEM (IMPROVED)
+// ⭐ XP SYSTEM (ANTI-SPAM FIX)
 // ===============================
 const addXP = (userId, amount = 5) => {
   const user = getUser(userId);
 
+  const now = Date.now();
+
+  // anti spam XP (5 sec cooldown)
+  if (now - user.lastXpGain < 5000) {
+    return { levelUp: false };
+  }
+
+  user.lastXpGain = now;
   user.xp += amount;
 
-  const neededXP = user.level * 100;
+  const needed = user.level * 100;
 
-  if (user.xp >= neededXP) {
-    user.level++;
-    user.xp = user.xp - neededXP; // 🔥 carry extra XP
+  if (user.xp >= needed) {
+    user.level += 1;
+    user.xp -= needed;
 
     return { levelUp: true, level: user.level };
   }
@@ -197,18 +223,6 @@ const addWarning = (groupId, userId, reason = 'No reason') => {
   return cache.warnings[key];
 };
 
-const removeWarning = (groupId, userId) => {
-  const key = `${groupId}_${userId}`;
-
-  if (cache.warnings[key] && cache.warnings[key].count > 0) {
-    cache.warnings[key].count--;
-    cache.warnings[key].warnings.pop();
-    return true;
-  }
-
-  return false;
-};
-
 const clearWarnings = (groupId, userId) => {
   const key = `${groupId}_${userId}`;
   delete cache.warnings[key];
@@ -216,11 +230,9 @@ const clearWarnings = (groupId, userId) => {
 };
 
 // ===============================
-// 🛡️ MOD SYSTEM (FIXED SAFE)
+// 🛡️ MOD SYSTEM (OWNER PROTECTED)
 // ===============================
-const getModerators = () => {
-  return cache.mods.moderators || [];
-};
+const getModerators = () => cache.mods.moderators;
 
 const addModerator = (userId) => {
   if (!userId) return false;
@@ -229,6 +241,7 @@ const addModerator = (userId) => {
     cache.mods.moderators.push(userId);
     return true;
   }
+
   return false;
 };
 
@@ -242,6 +255,8 @@ const isModerator = (userId) => {
 };
 
 // ===============================
+// EXPORTS
+// ===============================
 module.exports = {
   getGroupSettings,
   updateGroupSettings,
@@ -250,7 +265,6 @@ module.exports = {
   addXP,
   getWarnings,
   addWarning,
-  removeWarning,
   clearWarnings,
   getModerators,
   addModerator,
