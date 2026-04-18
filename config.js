@@ -1,23 +1,19 @@
-/**
- * 🌍 Global Configuration - Mathithibala Bot (v1.0.0)
- * Created by Professor Sahil 👑
- */
-
 module.exports = {
 
   // 👑 OWNER CONFIG
   ownerNumber: ['27835515085'],
-  ownerName: ['Professor Sahil'],
+  ownerName: 'Professor Sahil',
 
   // 🤖 BOT CONFIG
   botName: 'Mathithibala Bot',
   prefix: process.env.PREFIX || '.',
+
   sessionName: 'session',
   sessionID: process.env.SESSION_ID || '',
 
   // 🔗 SYSTEM LINKS
-  newsletterJid: '', // optional
-  updateZipUrl: '', // optional (you can add your repo zip later)
+  newsletterJid: '',
+  updateZipUrl: '',
 
   // 🎨 STICKER CONFIG
   packname: 'Mathithibala Bot',
@@ -36,8 +32,8 @@ module.exports = {
   // 🧠 AI SYSTEM (NEW 🔥)
   ai: {
     enabled: true,
-    smartFallback: true, // replies when no command is found
-    respectPrivacy: true, // protects Sahil's private info
+    smartFallback: true,
+    respectPrivacy: true,
     personality: "professional",
     creatorName: "Professor Sahil"
   },
@@ -86,13 +82,13 @@ module.exports = {
     invalidCommand: '❓ Unknown command. Try .menu'
   },
 
-  // 🌍 TIMEZONE (FIXED FOR YOU 🇿🇦)
+  // 🌍 TIMEZONE
   timezone: 'Africa/Johannesburg',
 
   // ⚠️ LIMITS
   maxWarnings: 3,
 
-  // 🌐 SOCIALS (UPDATED)
+  // 🌐 SOCIALS
   social: {
     github: 'https://github.com/sahillume/Mathithithibala_Bot',
     instagram: '',
