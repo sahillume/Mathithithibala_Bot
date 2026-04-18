@@ -1,24 +1,16 @@
 /**
- * Message Handler - Processes incoming messages and executes commands
+ * Message Handler - Sahil Pro System
  */
 
 const config = require('./config');
-const database = require('./database');
 const { loadCommands } = require('./utils/commandLoader');
-const { addMessage } = require('./utils/groupstats');
-const { jidDecode, jidEncode } = require('@whiskeysockets/baileys');
-const fs = require('fs');
-const path = require('path');
+const { jidDecode } = require('@whiskeysockets/baileys');
 const axios = require('axios');
 
 // ===============================
 // ⏳ COOLDOWN SYSTEM
 // ===============================
 const cooldowns = new Map();
-
-// Group metadata cache
-const groupMetadataCache = new Map();
-const CACHE_TTL = 60000;
 
 // Load commands
 const commands = loadCommands();
@@ -31,6 +23,7 @@ const handleMessage = async (sock, msg) => {
     if (!msg.message) return;
 
     const from = msg.key.remoteJid;
+
     const sender = msg.key.fromMe
       ? sock.user.id.split(':')[0] + '@s.whatsapp.net'
       : msg.key.participant || msg.key.remoteJid;
@@ -38,7 +31,7 @@ const handleMessage = async (sock, msg) => {
     const isGroup = from.endsWith('@g.us');
 
     // ===============================
-    // EXTRACT MESSAGE TEXT
+    // EXTRACT TEXT
     // ===============================
     let body =
       msg.message?.conversation ||
@@ -50,13 +43,18 @@ const handleMessage = async (sock, msg) => {
     body = (body || '').trim();
 
     // ===============================
+    // 👑 OWNER CHECK
+    // ===============================
+    const isOwner = checkOwner(sender);
+
+    // ===============================
     // 🤖 AI AUTO REPLY
     // ===============================
     if (!body.startsWith(config.prefix) && !msg.key.fromMe) {
       if (config.aiMode) {
         try {
           const res = await axios.get(
-            `https://api.affiliateplus.xyz/api/chatbot?message=${encodeURIComponent(body)}&botname=Mathithibala&ownername=Sahil`
+            `https://api.affiliateplus.xyz/api/chatbot?message=${encodeURIComponent(body)}&botname=${config.botName}&ownername=${config.ownerName}`
           );
 
           await sock.sendMessage(from, {
@@ -73,7 +71,7 @@ const handleMessage = async (sock, msg) => {
     // ===============================
     // 🔒 OWNER PROTECTION
     // ===============================
-    if (!isOwner(sender)) {
+    if (!isOwner) {
       if (
         body.toLowerCase().includes('setname') ||
         body.toLowerCase().includes('setpp') ||
@@ -91,20 +89,6 @@ const handleMessage = async (sock, msg) => {
     if (!body.startsWith(config.prefix)) return;
 
     // ===============================
-    // ⏳ COOLDOWN SYSTEM
-    // ===============================
-    const now = Date.now();
-    const last = cooldowns.get(sender) || 0;
-
-    if (now - last < 3000) {
-      return sock.sendMessage(from, {
-        text: '⏳ Please wait before using another command.'
-      }, { quoted: msg });
-    }
-
-    cooldowns.set(sender, now);
-
-    // ===============================
     // PARSE COMMAND
     // ===============================
     const args = body.slice(config.prefix.length).trim().split(/ +/);
@@ -114,11 +98,26 @@ const handleMessage = async (sock, msg) => {
     if (!command) return;
 
     // ===============================
-    // OWNER CHECK
+    // ⏳ COOLDOWN PER USER
     // ===============================
-    if (command.ownerOnly && !isOwner(sender)) {
+    const now = Date.now();
+    const key = sender + commandName;
+    const last = cooldowns.get(key) || 0;
+
+    if (now - last < 3000) {
       return sock.sendMessage(from, {
-        text: '❌ Owner only command.'
+        text: '⏳ Slow down, wait a moment...'
+      }, { quoted: msg });
+    }
+
+    cooldowns.set(key, now);
+
+    // ===============================
+    // OWNER-ONLY COMMAND
+    // ===============================
+    if (command.ownerOnly && !isOwner) {
+      return sock.sendMessage(from, {
+        text: '❌ This command is only for the owner.'
       }, { quoted: msg });
     }
 
@@ -129,8 +128,11 @@ const handleMessage = async (sock, msg) => {
       from,
       sender,
       isGroup,
-      isOwner: isOwner(sender),
-      reply: (text) => sock.sendMessage(from, { text }, { quoted: msg })
+      isOwner,
+      config,
+
+      reply: (text) =>
+        sock.sendMessage(from, { text }, { quoted: msg })
     });
 
   } catch (err) {
@@ -139,12 +141,14 @@ const handleMessage = async (sock, msg) => {
 };
 
 // ===============================
-// OWNER CHECK
+// OWNER CHECK FUNCTION
 // ===============================
-const isOwner = (sender) => {
+const checkOwner = (sender) => {
   if (!sender) return false;
+
   const number = sender.split('@')[0];
-  return config.ownerNumber.includes(number);
+
+  return config.ownerNumbers.includes(number);
 };
 
 module.exports = {
