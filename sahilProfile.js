@@ -1,9 +1,9 @@
 /**
- * Sahil Profile - Central Knowledge System
- * Gives AI controlled knowledge about Sahil (with privacy protection)
+ * Sahil Profile - Central Knowledge System (PRO VERSION)
+ * Secure + structured + AI identity handler
  */
 
-// ⚠️ Safe require (prevents crash if API file missing)
+// Safe require
 let APIs;
 try {
   APIs = require('./utils/api');
@@ -18,131 +18,127 @@ const sahilProfile = {
   dob: "2008/08/06",
   role: "Creator of Mathithibala AI",
   status: "Matric Student",
-  location: "Confidential",
-  contacts: ["+27835515085", "+27724469823"]
+  location: "Private"
+  // ⚠️ Do NOT expose contacts directly in responses
 };
 
 /**
- * Detect if message is about Sahil
+ * Detect Sahil-related questions
  */
 function isSahilQuestion(text = "") {
+  const lower = text.toLowerCase();
+
   const keywords = [
     "sahil",
-    "who created you",
+    "professor sahil",
     "your creator",
+    "who created you",
     "your owner",
-    "who is your leader",
     "who made you",
-
-    // greetings
-    "how are you sahil",
-    "hello sahil",
-    "hi sahil",
-    "hey sahil",
-    "good morning sahil",
-    "good evening sahil",
-
-    // info
-    "who is sahil",
-    "where is sahil",
-    "age sahil",
-    "how old sahil",
-    "contact sahil",
-    "number sahil"
+    "who is your leader",
+    "tell me about sahil"
   ];
 
-  const lower = text.toLowerCase();
   return keywords.some(k => lower.includes(k));
 }
 
 /**
- * Generate response
+ * Main response engine
  */
 function getSahilResponse(text = "") {
   const lower = text.toLowerCase();
 
-  // 👋 Greeting
+  // 🟢 BOT NAME QUESTION
+  if (
+    lower.includes("your name") ||
+    lower.includes("who are you") ||
+    lower === "name"
+  ) {
+    return `🤖 I am *Mathithibala AI Bot*.
+
+👑 I was created under the guidance of *Professor Sahil*.`;
+  }
+
+  // 👋 GREETING
   if (
     lower.includes("hello sahil") ||
     lower.includes("hi sahil") ||
-    lower.includes("hey sahil") ||
-    lower.includes("good morning sahil") ||
-    lower.includes("good evening sahil")
+    lower.includes("hey sahil")
   ) {
     return `👋 Hello!
 
-My leader *Professor Sahil* sends his regards 👑
+I respectfully represent *Professor Sahil* 👑
 
-🤖 I am his AI assistant running on the Mathithibala Hacker Bot system.`;
+🤖 I am his AI assistant under the Mathithibala system.`;
   }
 
-  // 💙 How are you
-  if (lower.includes("how are you sahil")) {
-    return `👑 My leader *Professor Sahil* is doing well but currently focused on improving the Mathithibala AI system.
-
-🤖 He is busy developing and cannot respond personally right now.`;
-  }
-
-  // 👑 Who is Sahil
-  if (lower.includes("who is sahil")) {
-    return `👑 *${sahilProfile.title}*
-
-Sahil is the creator of *Mathithibala AI*.
-
-🎓 Status: ${sahilProfile.status}  
-🧠 Role: ${sahilProfile.role}  
-🚀 Known as: ${sahilProfile.title}
-
-He is a highly intelligent developer building advanced AI systems.`;
-  }
-
-  // 📍 Location (PRIVATE 🔒)
-  if (lower.includes("where is sahil")) {
-    return `🔒 That information is private.
-
-🤖 You may kindly ask my leader *Sahil* himself. I truly respect him and cannot share that.`;
-  }
-
-  // 🎂 Age
-  if (lower.includes("how old") || lower.includes("age")) {
-    const birthYear = 2008;
-    const age = new Date().getFullYear() - birthYear;
-
-    return `🎂 Sahil is approximately *${age} years old* (Born: ${sahilProfile.dob}).`;
-  }
-
-  // 📞 Contact
-  if (
-    lower.includes("contact") ||
-    lower.includes("number") ||
-    lower.includes("phone")
-  ) {
-    return `📞 You can contact *Professor Sahil* here:
-
-${sahilProfile.contacts.join(' / ')}`;
-  }
-
-  // 🤖 Creator
+  // 👑 WHO CREATED YOU
   if (
     lower.includes("who created you") ||
     lower.includes("your creator") ||
-    lower.includes("owner") ||
-    lower.includes("who made you")
+    lower.includes("who made you") ||
+    lower.includes("owner")
   ) {
-    return `🤖 I was created by *${sahilProfile.title}*.
+    return `🤖 I was created by *Professor Sahil*.
 
-He is the mastermind behind the Mathithibala Hacker Bot system.`;
+He is the developer behind the Mathithibala AI system 👑`;
   }
 
-  // 🔒 UNKNOWN PERSONAL QUESTION (IMPORTANT 🔥)
+  // 👑 WHO IS SAHIL
+  if (lower.includes("who is sahil")) {
+    return `👑 *${sahilProfile.title}*
+
+🧠 Role: ${sahilProfile.role}  
+🎓 Status: ${sahilProfile.status}  
+🚀 Known as: Mathithibala AI Creator  
+
+He is the developer and mind behind this system.`;
+  }
+
+  // 🎂 AGE
+  if (lower.includes("how old") || lower.includes("age sahil")) {
+    const age = new Date().getFullYear() - 2008;
+    return `🎂 *Professor Sahil* is approximately ${age} years old (Born ${sahilProfile.dob}).`;
+  }
+
+  // 📍 LOCATION (STRICT PRIVACY)
+  if (
+    lower.includes("where is sahil") ||
+    lower.includes("location sahil")
+  ) {
+    return `🔒 Sorry, I cannot share that information.
+
+I deeply respect my leader *Professor Sahil* and his privacy.
+
+🙏 Please contact him directly if needed.`;
+  }
+
+  // 📞 CONTACT (BLOCKED FOR PRIVACY SAFETY)
+  if (
+    lower.includes("contact sahil") ||
+    lower.includes("number sahil") ||
+    lower.includes("phone sahil")
+  ) {
+    return `🔒 Contact details are private.
+
+🙏 Please reach out to *Professor Sahil* directly through official channels.`;
+  }
+
+  // ❓ UNKNOWN SAHIL QUESTIONS
   if (lower.includes("sahil")) {
-    return `🔒 That information is private.
+    return `🔒 I may not have permission to answer that.
 
-🤖 You can ask my leader *Sahil* himself. I truly respect him and cannot share that kind of information.`;
+I deeply respect my leader *Professor Sahil* 👑
+
+🙏 Please ask him directly for accurate information.`;
   }
 
-  // Default fallback
-  return null;
+  // ❌ DEFAULT FALLBACK
+  return `🤖 I'm not fully sure about that.
+
+I was created by *Professor Sahil*, and I only share verified system knowledge.
+
+🙏 For more details, please contact him directly.`;
 }
 
 module.exports = {
