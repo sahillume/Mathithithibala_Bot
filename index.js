@@ -41,7 +41,7 @@ console.log = (...args) => {
 // 🤖 START BOT
 // ===============================
 async function startBot() {
-  const sessionFolder = `./${config.sessionName}`;
+  const sessionFolder = './session'; // 🔥 fixed (no undefined errors)
 
   const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
   const { version } = await fetchLatestBaileysVersion();
@@ -64,29 +64,42 @@ async function startBot() {
 
     // 📱 QR CODE
     if (qr) {
-      console.log('\n📱 Scan this QR to link WhatsApp:\n');
+      console.clear();
+      console.log(`
+╔══════════════════════════════╗
+   📱 SCAN QR TO CONNECT
+╚══════════════════════════════╝
+`);
       qrcode.generate(qr, { small: true });
 
       console.log(`
-🔥 HOW TO CONNECT:
+🔥 STEPS:
 1. Open WhatsApp
 2. Tap ⋮ (3 dots)
 3. Linked Devices
 4. Link a Device
-5. Scan this QR
+5. Scan QR
 
-👑 Controlled by ${config.ownerName}
+👑 Owner: ${config.ownerName}
+🤖 Bot: ${config.botName}
 `);
     }
 
     // ✅ CONNECTED
     if (connection === 'open') {
-      console.log('\n✅ BOT CONNECTED SUCCESSFULLY!');
-      console.log(`🤖 ${config.botName} is now ONLINE`);
-      console.log(`👑 Owner: ${config.ownerName}\n`);
+      console.clear();
+      console.log(`
+╔══════════════════════════════╗
+   ✅ BOT CONNECTED SUCCESSFULLY
+╚══════════════════════════════╝
+
+🤖 ${config.botName} is ONLINE
+👑 Owner: ${config.ownerName}
+⚡ Mode: Sahil Pro Activated
+`);
 
       await sock.updateProfileStatus(
-        `🤖 ${config.botName} | Powered by ${config.ownerName} ⚡`
+        `🤖 ${config.botName} | 👑 ${config.ownerName} | ⚡ Sahil Pro`
       );
     }
 
@@ -95,9 +108,9 @@ async function startBot() {
       const reason = lastDisconnect?.error?.output?.statusCode;
 
       if (reason === DisconnectReason.loggedOut) {
-        console.log('❌ Logged out. Please scan QR again.');
+        console.log('\n❌ Session expired. Delete session folder and scan again.');
       } else {
-        console.log('⚠️ Connection lost. Reconnecting...');
+        console.log('\n⚠️ Connection lost. Reconnecting in 3 seconds...');
         setTimeout(startBot, 3000);
       }
     }
@@ -117,7 +130,11 @@ async function startBot() {
       // ❌ Ignore status messages
       if (msg.key.remoteJid === 'status@broadcast') continue;
 
-      handler.handleMessage(sock, msg).catch(console.error);
+      try {
+        await handler.handleMessage(sock, msg);
+      } catch (err) {
+        console.error('Handler Error:', err);
+      }
     }
   });
 
@@ -127,5 +144,9 @@ async function startBot() {
 // ===============================
 // 🚀 START BOT
 // ===============================
-console.log(`🚀 Starting ${config.botName}...`);
+console.log(`
+🚀 Starting ${config.botName}...
+👑 Owner: ${config.ownerName}
+`);
+
 startBot().catch(err => console.error('Startup Error:', err));
