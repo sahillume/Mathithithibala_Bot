@@ -1,7 +1,7 @@
 {
   "name": "Mathithibala_Bot",
   "description": "Professional WhatsApp AI Assistant powered by Professor Sahil. Features smart AI responses, automation, moderation, and media tools.",
-  "repository": "https://github.com/sahillume/Mathithithibala_Bot",
+  "repository": "https://github.com/sahillume/Mathithibala_Bot",
   "keywords": [
     "whatsapp",
     "baileys",
@@ -10,23 +10,31 @@
     "automation",
     "mathithibala"
   ],
+
   "buildpacks": [
     {
       "url": "heroku/nodejs"
     }
   ],
+
+  "scripts": {
+    "start": "node index.js"
+  },
+
   "env": {
     "SESSION_ID": {
-      "description": "Session ID for Mathithibala Bot (paste your Baileys session string here)",
+      "description": "Session ID for Mathithibala Bot (Baileys session string)",
       "required": false
     },
+
     "PREFIX": {
       "description": "Bot command prefix (example: . or !)",
       "required": false,
       "value": "."
     },
+
     "OWNER_NUMBER": {
-      "description": "Owner WhatsApp number (e.g. 2783xxxxxxx)",
+      "description": "Owner WhatsApp number (e.g. 27835515085)",
       "required": false
     }
   }
