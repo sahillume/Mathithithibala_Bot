@@ -1,10 +1,9 @@
 /**
- * Message Handler - Sahil Pro System
+ * Message Handler - Sahil Pro System (Multi-Prefix Edition)
  */
 
 const config = require('./config');
 const { loadCommands } = require('./utils/commandLoader');
-const { jidDecode } = require('@whiskeysockets/baileys');
 const axios = require('axios');
 
 // ===============================
@@ -14,6 +13,21 @@ const cooldowns = new Map();
 
 // Load commands
 const commands = loadCommands();
+
+// ===============================
+// MULTI PREFIX SUPPORT
+// ===============================
+const getPrefixes = () => {
+  // Default prefixes + custom prefix from config
+  return [
+    config.prefix,
+    '.',
+    '!',
+    '#',
+    '/',
+    '?'
+  ];
+};
 
 // ===============================
 // MAIN HANDLER
@@ -50,7 +64,11 @@ const handleMessage = async (sock, msg) => {
     // ===============================
     // 🤖 AI AUTO REPLY
     // ===============================
-    if (!body.startsWith(config.prefix) && !msg.key.fromMe) {
+    const prefixes = getPrefixes();
+
+    const hasPrefix = prefixes.some(p => body.startsWith(p));
+
+    if (!hasPrefix && !msg.key.fromMe) {
       if (config.aiMode) {
         try {
           const res = await axios.get(
@@ -84,14 +102,23 @@ const handleMessage = async (sock, msg) => {
     }
 
     // ===============================
-    // CHECK PREFIX
+    // CHECK PREFIX MATCH
     // ===============================
-    if (!body.startsWith(config.prefix)) return;
+    let usedPrefix = null;
+
+    for (const p of prefixes) {
+      if (body.startsWith(p)) {
+        usedPrefix = p;
+        break;
+      }
+    }
+
+    if (!usedPrefix) return;
 
     // ===============================
     // PARSE COMMAND
     // ===============================
-    const args = body.slice(config.prefix.length).trim().split(/ +/);
+    const args = body.slice(usedPrefix.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
 
     const command = commands.get(commandName);
@@ -147,7 +174,6 @@ const checkOwner = (sender) => {
   if (!sender) return false;
 
   const number = sender.split('@')[0];
-
   return config.ownerNumbers.includes(number);
 };
 
