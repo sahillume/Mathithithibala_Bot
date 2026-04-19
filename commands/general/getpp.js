@@ -1,6 +1,5 @@
 /**
- * GetPP Command - Fetch WhatsApp Profile Picture
- * Mathithibala_Bot Pro | Professor Sahil System
+ * GetPP Command - FIXED VERSION
  */
 
 module.exports = {
@@ -8,22 +7,31 @@ module.exports = {
   aliases: ["pp", "profilepic", "avatar"],
   category: "general",
   description: "Get WhatsApp profile picture of a user",
-  usage: ".getpp @user or reply to user",
+  usage: ".getpp @user or reply",
 
   async execute(sock, msg, args, extra) {
     try {
       const chatId = msg.key.remoteJid;
 
-      // get mentioned or replied user
-      let target =
-        msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0] ||
-        msg.message?.extendedTextMessage?.contextInfo?.participant ||
-        msg.message?.key?.participant ||
-        msg.key.participant ||
-        msg.key.remoteJid;
+      // ===============================
+      // 🧠 PROPER TARGET RESOLUTION
+      // ===============================
+      const context = msg.message?.extendedTextMessage?.contextInfo;
 
-      if (!target) {
-        return extra.reply("❌ Please mention a user or reply to their message.");
+      let target =
+        context?.mentionedJid?.[0] || // @mention
+        context?.participant ||       // reply target
+        msg.message?.extendedTextMessage?.contextInfo?.remoteJid ||
+        msg.key.participant ||        // group sender
+        msg.key.remoteJid;            // fallback
+
+      // ❌ FIX: prevent bot self fallback
+      if (target === sock.user.id) {
+        return extra.reply("❌ You cannot fetch bot profile picture.");
+      }
+
+      if (!target || target === chatId) {
+        return extra.reply("❌ Please mention or reply to a user.");
       }
 
       await extra.reply("📸 Fetching profile picture...");
@@ -32,7 +40,7 @@ module.exports = {
       try {
         pp = await sock.profilePictureUrl(target, "image");
       } catch (e) {
-        return extra.reply("❌ User has no profile picture or privacy is enabled.");
+        return extra.reply("❌ User has no profile picture or it's private.");
       }
 
       await sock.sendMessage(chatId, {
@@ -42,15 +50,15 @@ module.exports = {
 
 👤 User: @${target.split("@")[0]}
 
-🤖 Powered by Mathithibala_Bot
-👑 Professor Sahil System`
+🤖 Mathithibala_Bot
+👑 Professor Sahil`
       }, {
         quoted: msg,
         mentions: [target]
       });
 
     } catch (err) {
-      console.log("GETPP ERROR:", err);
+      console.log("GETPP ERROR:", err.message);
       extra.reply("❌ Failed to fetch profile picture.");
     }
   }
