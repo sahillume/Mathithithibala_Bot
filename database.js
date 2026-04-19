@@ -1,129 +1,217 @@
 /**
- * 🔥 PRO MESSAGE HANDLER - Mathithibala_Bot (Sahil System Enhanced)
+ * 💾 PRO JSON DATABASE SYSTEM - Mathithibala_Bot
+ * Enhanced by Sahil System
  */
 
+const fs = require('fs');
+const path = require('path');
 const config = require('./config');
-const { loadCommands } = require('./utils/commandLoader');
-const axios = require('axios');
 
-const cooldowns = new Map();
-const commands = loadCommands();
+const DB_PATH = path.join(__dirname, 'database');
 
 // ===============================
-// PREFIX SYSTEM (PRO)
+// 📁 FILE PATHS
 // ===============================
-const getPrefixes = () => [
-  config.prefix,
-  '.', '!', '#', '/', '?'
-];
-
-// ===============================
-// OWNER CHECK
-// ===============================
-const isOwner = (sender) => {
-  const number = sender?.split('@')[0];
-  return config.ownerNumbers.includes(number);
+const FILES = {
+  groups: path.join(DB_PATH, 'groups.json'),
+  users: path.join(DB_PATH, 'users.json'),
+  warnings: path.join(DB_PATH, 'warnings.json'),
+  mods: path.join(DB_PATH, 'mods.json')
 };
 
 // ===============================
-// MAIN HANDLER
+// 🧠 IN-MEMORY CACHE (FAST ACCESS)
 // ===============================
-const handleMessage = async (sock, msg) => {
+const cache = {
+  groups: {},
+  users: {},
+  warnings: {},
+  mods: { moderators: [] }
+};
+
+// ===============================
+// 📁 INIT DATABASE FOLDER
+// ===============================
+if (!fs.existsSync(DB_PATH)) {
+  fs.mkdirSync(DB_PATH, { recursive: true });
+}
+
+// ===============================
+// 🧾 SAFE INIT FILE
+// ===============================
+const initFile = (file, defaultData) => {
   try {
-    if (!msg.message) return;
-
-    const from = msg.key.remoteJid;
-
-    const sender =
-      msg.key.fromMe
-        ? sock.user.id.split(':')[0] + '@s.whatsapp.net'
-        : msg.key.participant || msg.participant || from;
-
-    const isGroup = from.endsWith('@g.us');
-
-    let body =
-      msg.message?.conversation ||
-      msg.message?.extendedTextMessage?.text ||
-      msg.message?.imageMessage?.caption ||
-      msg.message?.videoMessage?.caption ||
-      '';
-
-    body = body.trim();
-    if (!body) return;
-
-    const prefixes = getPrefixes();
-    const usedPrefix = prefixes.find(p => body.startsWith(p));
-
-    const owner = isOwner(sender);
-
-    // ===============================
-    // 🤖 AI AUTO REPLY (SAFE LOOP PROTECTION)
-    // ===============================
-    if (!usedPrefix && !msg.key.fromMe && config.aiMode) {
-      try {
-        const res = await axios.get(
-          `https://api.affiliateplus.xyz/api/chatbot?message=${encodeURIComponent(body)}&botname=${config.botName}&ownername=${config.ownerName}`
-        );
-
-        if (res?.data?.message) {
-          return sock.sendMessage(from, {
-            text: `🤖 ${res.data.message}`
-          }, { quoted: msg });
-        }
-      } catch (e) {}
+    if (!fs.existsSync(file)) {
+      fs.writeFileSync(file, JSON.stringify(defaultData, null, 2));
     }
-
-    if (!usedPrefix) return;
-
-    const args = body.slice(usedPrefix.length).trim().split(/ +/);
-    const commandName = args.shift()?.toLowerCase();
-
-    const command = commands.get(commandName);
-    if (!command) return;
-
-    // ===============================
-    // COOLDOWN SYSTEM (PRO)
-    // ===============================
-    const key = sender + commandName;
-    const now = Date.now();
-    const last = cooldowns.get(key) || 0;
-
-    const cooldownTime = command.cooldown || 3000;
-
-    if (now - last < cooldownTime) {
-      return sock.sendMessage(from, {
-        text: '⏳ Please wait before using this command again.'
-      }, { quoted: msg });
-    }
-
-    cooldowns.set(key, now);
-
-    // ===============================
-    // OWNER PROTECTION
-    // ===============================
-    if (command.ownerOnly && !owner) {
-      return sock.sendMessage(from, {
-        text: '❌ Owner only command.'
-      }, { quoted: msg });
-    }
-
-    // ===============================
-    // EXECUTE COMMAND
-    // ===============================
-    await command.execute(sock, msg, args, {
-      from,
-      sender,
-      isGroup,
-      isOwner: owner,
-      config,
-
-      reply: (text) =>
-        sock.sendMessage(from, { text }, { quoted: msg })
-    });
-
-  } catch (err) {
-    console.log('Handler Error:', err.message);
+  } catch (e) {
+    console.log('DB Init Error:', e.message);
   }
 };
 
-module.exports = { handleMessage };
+// ===============================
+initFile(FILES.groups, {});
+initFile(FILES.users, {});
+initFile(FILES.warnings, {});
+initFile(FILES.mods, { moderators: [] });
+
+// ===============================
+// 📥 SAFE READ
+// ===============================
+const readDB = (file) => {
+  try {
+    if (!fs.existsSync(file)) return {};
+
+    const data = fs.readFileSync(file, 'utf-8');
+    return JSON.parse(data || '{}');
+  } catch (e) {
+    console.log('DB Read Error:', e.message);
+    return {};
+  }
+};
+
+// ===============================
+// 📤 SAFE WRITE (ATOMIC)
+// ===============================
+const writeDB = (file, data) => {
+  try {
+    const temp = file + '.tmp';
+    fs.writeFileSync(temp, JSON.stringify(data, null, 2));
+    fs.renameSync(temp, file);
+    return true;
+  } catch (e) {
+    console.log('DB Write Error:', e.message);
+    return false;
+  }
+};
+
+// ===============================
+// 🔄 LOAD CACHE ON START
+// ===============================
+const loadAll = () => {
+  cache.groups = readDB(FILES.groups);
+  cache.users = readDB(FILES.users);
+  cache.warnings = readDB(FILES.warnings);
+  cache.mods = readDB(FILES.mods);
+};
+
+loadAll();
+
+// ===============================
+// 💬 GROUP SETTINGS
+// ===============================
+const getGroupSettings = (gid) => {
+  if (!cache.groups[gid]) {
+    cache.groups[gid] = config.defaultGroupSettings || {};
+    writeDB(FILES.groups, cache.groups);
+  }
+  return cache.groups[gid];
+};
+
+const updateGroupSettings = (gid, data) => {
+  cache.groups[gid] = {
+    ...(cache.groups[gid] || {}),
+    ...data
+  };
+  return writeDB(FILES.groups, cache.groups);
+};
+
+// ===============================
+// 👤 USERS
+// ===============================
+const getUser = (uid) => {
+  if (!cache.users[uid]) {
+    cache.users[uid] = {
+      registered: Date.now(),
+      premium: false,
+      banned: false,
+      xp: 0
+    };
+    writeDB(FILES.users, cache.users);
+  }
+  return cache.users[uid];
+};
+
+const updateUser = (uid, data) => {
+  cache.users[uid] = {
+    ...(cache.users[uid] || {}),
+    ...data
+  };
+  return writeDB(FILES.users, cache.users);
+};
+
+// ===============================
+// ⚠️ WARNINGS SYSTEM
+// ===============================
+const getWarnings = (gid, uid) => {
+  const key = `${gid}_${uid}`;
+  return cache.warnings[key] || { count: 0, warnings: [] };
+};
+
+const addWarning = (gid, uid, reason) => {
+  const key = `${gid}_${uid}`;
+
+  if (!cache.warnings[key]) {
+    cache.warnings[key] = { count: 0, warnings: [] };
+  }
+
+  cache.warnings[key].count++;
+  cache.warnings[key].warnings.push({
+    reason,
+    date: Date.now()
+  });
+
+  return writeDB(FILES.warnings, cache.warnings);
+};
+
+const clearWarnings = (gid, uid) => {
+  const key = `${gid}_${uid}`;
+  delete cache.warnings[key];
+  return writeDB(FILES.warnings, cache.warnings);
+};
+
+// ===============================
+// 👑 MOD SYSTEM
+// ===============================
+const getModerators = () => cache.mods.moderators || [];
+
+const addModerator = (uid) => {
+  if (!cache.mods.moderators.includes(uid)) {
+    cache.mods.moderators.push(uid);
+    return writeDB(FILES.mods, cache.mods);
+  }
+  return false;
+};
+
+const removeModerator = (uid) => {
+  cache.mods.moderators =
+    cache.mods.moderators.filter(x => x !== uid);
+  return writeDB(FILES.mods, cache.mods);
+};
+
+const isModerator = (uid) => {
+  return cache.mods.moderators.includes(uid);
+};
+
+// ===============================
+// 📦 EXPORTS
+// ===============================
+module.exports = {
+  getGroupSettings,
+  updateGroupSettings,
+
+  getUser,
+  updateUser,
+
+  getWarnings,
+  addWarning,
+  clearWarnings,
+
+  getModerators,
+  addModerator,
+  removeModerator,
+  isModerator,
+
+  // optional debug
+  _cache: cache
+};
