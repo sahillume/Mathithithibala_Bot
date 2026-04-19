@@ -1,25 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Mathithibala Bot Panel</title>
-
   <style>
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f0f0f;
-      color: #fff;
+      font-family: Arial;
       text-align: center;
-    }
-
-    .container {
-      padding: 30px;
-    }
-
-    h1 {
-      color: #00ffcc;
+      background: #0d1117;
+      color: white;
+      padding-top: 100px;
     }
 
     input {
@@ -27,111 +16,54 @@
       width: 250px;
       border-radius: 8px;
       border: none;
-      outline: none;
-      margin-top: 20px;
+      margin-bottom: 10px;
     }
 
     button {
       padding: 12px 20px;
-      margin-top: 15px;
       border: none;
       border-radius: 8px;
       background: #00ffcc;
-      color: #000;
-      font-weight: bold;
       cursor: pointer;
-    }
-
-    button:hover {
-      background: #00ccaa;
-    }
-
-    .card {
-      margin-top: 30px;
-      background: #1a1a1a;
-      padding: 20px;
-      border-radius: 12px;
-      display: inline-block;
-      min-width: 300px;
+      font-weight: bold;
     }
 
     .code {
-      font-size: 22px;
+      margin-top: 20px;
+      font-size: 24px;
       color: #00ffcc;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-
-    .status {
-      margin-top: 10px;
-      color: #aaa;
-    }
-
-    footer {
-      margin-top: 50px;
-      font-size: 12px;
-      color: #555;
     }
   </style>
 </head>
-
 <body>
 
-  <div class="container">
-    <h1>🤖 Mathithibala Bot Panel</h1>
-    <p>Powered by Professor Sahil</p>
+  <h1>🤖 Mathithibala Bot Panel</h1>
 
-    <input id="number" placeholder="Enter WhatsApp number (e.g 2783xxxxxxx)" />
+  <input id="number" placeholder="Enter number (2783xxxxxxx)">
+  <br>
+  <button onclick="generate()">Generate Pair Code</button>
 
-    <br />
+  <div class="code" id="code"></div>
 
-    <button onclick="generate()">Generate Pair Code</button>
+  <script>
+    async function generate() {
+      const number = document.getElementById("number").value;
 
-    <div class="card">
-      <h3>🔐 Pair Code</h3>
-      <div class="code" id="code">----</div>
-      <div class="status" id="status">Waiting...</div>
-    </div>
+      const res = await fetch('/pair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number })
+      });
 
-    <footer>
-      ⚡ WhatsApp Bot Hosting Panel | Mathithibala_Bot
-    </footer>
-  </div>
+      const data = await res.json();
 
-<script>
-async function generate() {
-  const number = document.getElementById("number").value;
-
-  if (!number) {
-    alert("Enter a number first");
-    return;
-  }
-
-  document.getElementById("status").innerText = "Generating pair code...";
-
-  try {
-    const res = await fetch("http://localhost:3000/pair", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ number })
-    });
-
-    const data = await res.json();
-
-    if (data.code) {
-      document.getElementById("code").innerText = data.code;
-      document.getElementById("status").innerText = "Code generated successfully";
-    } else {
-      document.getElementById("status").innerText = "Failed: " + (data.error || "unknown");
+      if (data.code) {
+        document.getElementById("code").innerText = "CODE: " + data.code;
+      } else {
+        document.getElementById("code").innerText = data.error;
+      }
     }
-
-  } catch (err) {
-    document.getElementById("status").innerText = "Server error";
-  }
-}
-</script>
+  </script>
 
 </body>
 </html>
