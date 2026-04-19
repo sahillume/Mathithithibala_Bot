@@ -1,55 +1,34 @@
 /**
- * Ultra Pro AI Command - Sahil AI Assistant (CHATGPT MEMORY UPGRADE)
+ * Ultra Pro AI Command - Sahil AI Assistant (Memory + Stable Output)
  */
 
 const APIs = require('../../utils/api');
 const { sahilProfile, isSahilQuestion, getSahilResponse } = require('../../sahilProfile');
 const { saveMemory, formatMemory } = require('../../utils/memory');
 
-function splitMessage(text, maxLength = 3500) {
-  const parts = [];
-  let current = "";
-
-  const lines = text.split("\n");
-
-  for (let line of lines) {
-    if ((current + "\n" + line).length > maxLength) {
-      parts.push(current);
-      current = line;
-    } else {
-      current += (current ? "\n" : "") + line;
-    }
-  }
-
-  if (current) parts.push(current);
-
-  return parts;
-}
-
 module.exports = {
   name: 'ai',
   aliases: ['gpt', 'chatgpt', 'ask'],
   category: 'ai',
   description: 'Ultra Professional AI Assistant (Memory Enabled)',
-  usage: '.ai <question>',
 
   async execute(sock, msg, args, extra) {
     try {
 
       const userId = msg.key.remoteJid;
-      const fullText = args.join(' ');
+      const text = args.join(' ').trim();
 
-      // 🧠 MENU
-      if (!fullText) {
-        return extra.reply(`╭━━『 🤖 *Mathithibala AI* 』━━╮
+      // 📌 MENU
+      if (!text) {
+        return extra.reply(`╭━━『 🤖 Mathithibala AI 』━━╮
 
-👋 I am *Professor Sahil's AI Assistant*
+👋 Powered by Professor Sahil
 
 💡 Ask anything:
 • Essays
 • Explanations
-• Advice
-• Learning help
+• Coding help
+• General knowledge
 
 📌 Example:
 .ai explain photosynthesis
@@ -57,44 +36,38 @@ module.exports = {
 ╰━━━━━━━━━━━━━━━━━`);
       }
 
-      // 👑 SAHIL SYSTEM (HIGHEST PRIORITY)
-      if (isSahilQuestion(fullText)) {
-        const sahilReply = getSahilResponse(fullText);
+      // 👑 SAHIL SYSTEM PRIORITY
+      if (isSahilQuestion(text)) {
+        const res = getSahilResponse(text);
+        return extra.reply(`╭━━『 👑 Sahil System 』━━╮
 
-        return extra.reply(`╭━━『 👑 *Sahil System* 』━━╮
-
-${sahilReply}
+${res}
 
 ╰━━━━━━━━━━━━━━━━━`);
       }
 
-      await extra.reply('🤖 Mathithibala AI is thinking...\n⏳ Please wait ~30 seconds');
+      // ⚡ QUICK STATUS
+      await extra.reply('🤖 Thinking...\n⏳ Sahil AI is processing your request...');
 
-      // 🧠 SAVE USER MESSAGE
-      saveMemory(userId, "user", fullText);
-
-      // 🧠 GET MEMORY CONTEXT
+      // 🧠 MEMORY
+      saveMemory(userId, "user", text);
       const memory = formatMemory(userId);
 
-      // 🔥 STRONG CHATGPT STYLE PROMPT
+      // 🧠 CLEAN PROMPT (CHATGPT STYLE)
       const prompt = `
-You are Mathithibala AI created by Professor Sahil.
+You are "Mathithibala AI", created by Professor Sahil.
 
-CORE RULES:
-- Always give COMPLETE answers
-- Never cut explanations
+RULES:
+- Give COMPLETE answers
 - Be clear, structured, and helpful
-- Use previous conversation if relevant
+- Do NOT cut answers
+- Use memory only if relevant
 
-IMPORTANT:
-- If user continues topic, use memory
-- If new topic, ignore old memory
-
-CONVERSATION MEMORY:
+MEMORY:
 ${memory}
 
-CURRENT QUESTION:
-${fullText}
+QUESTION:
+${text}
 `;
 
       // 🔥 API CALL
@@ -102,58 +75,47 @@ ${fullText}
 
       let answer =
         response?.response ||
-        response?.msg ||
-        response?.data?.msg ||
-        response?.data?.response ||
-        response?.data?.text ||
         response?.result ||
         response?.answer ||
+        response?.data?.text ||
+        response?.data?.response ||
+        response?.msg ||
         response;
 
       if (typeof answer === "object") {
         answer = JSON.stringify(answer, null, 2);
       }
 
-      answer = String(answer || "").trim();
+      answer = String(answer || '').trim();
 
       if (!answer) {
-        return extra.reply('❌ AI failed to generate response.');
+        return extra.reply('❌ AI failed to respond. Try again.');
       }
 
-      // 🧹 CLEAN OUTPUT
-      answer = answer
-        .replace(/\\n/g, "\n")
-        .replace(/\n{3,}/g, "\n\n")
-        .trim();
-
-      // 🧠 SAVE AI RESPONSE (IMPORTANT FIX)
+      // 🧠 SAVE AI MEMORY
       saveMemory(userId, "ai", answer);
 
-      const finalMessage = `╭━━『 🤖 *Mathithibala AI* 』━━╮
+      // 📩 FINAL OUTPUT
+      const finalMessage = `╭━━『 🤖 Mathithibala AI 』━━╮
 👑 Powered by Professor Sahil
-🧠 Question: ${fullText}
 ━━━━━━━━━━━━━━━━━━
+
+🧠 Question:
+${text}
 
 📖 Answer:
 ${answer}
 
 ━━━━━━━━━━━━━━━━━━
-💡 System: Memory Enabled AI`;
+💡 Memory Enabled AI`;
 
-      // 🚀 SAFE SEND (NO CUTTING FIX)
-      const parts = splitMessage(finalMessage);
+      return sock.sendMessage(extra.from, {
+        text: finalMessage
+      }, { quoted: msg });
 
-      for (let i = 0; i < parts.length; i++) {
-        await sock.sendMessage(extra.from, {
-          text: parts[i]
-        }, { quoted: msg });
-
-        await new Promise(r => setTimeout(r, 700));
-      }
-
-    } catch (error) {
-      console.log(error);
-      return extra.reply('❌ AI Error. Please try again later.');
+    } catch (err) {
+      console.log(err);
+      return extra.reply('❌ AI Error occurred. Try again later.');
     }
   }
 };
