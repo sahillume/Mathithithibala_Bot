@@ -1,40 +1,38 @@
 /**
- * Message Handler - Mathithibala Pro System (FULL UPGRADED CORE)
+ * Message Handler - Mathithibala Pro System (ULTIMATE CORE v2)
  */
 
 const config = require('./config');
 const { loadCommands } = require('./utils/commandLoader');
 const axios = require('axios');
-const db = require('./database'); // 👈 IMPORTANT ADDED
+const db = require('./database');
 
 // ===============================
 // ⏳ COOLDOWN SYSTEM
 // ===============================
 const cooldowns = new Map();
 
-// Load commands
+// Load commands once
 const commands = loadCommands();
 
 // ===============================
-// MULTI PREFIX SUPPORT
+// PREFIX SYSTEM
 // ===============================
-const getPrefixes = () => {
-  return [
-    config.prefix,
-    '.',
-    '!',
-    '#',
-    '/',
-    '?'
-  ];
-};
+const getPrefixes = () => [
+  config.prefix,
+  '.',
+  '!',
+  '#',
+  '/',
+  '?'
+];
 
 // ===============================
 // MAIN HANDLER
 // ===============================
 const handleMessage = async (sock, msg) => {
   try {
-    if (!msg.message) return;
+    if (!msg?.message) return;
 
     const from = msg.key.remoteJid;
 
@@ -45,29 +43,29 @@ const handleMessage = async (sock, msg) => {
     const isGroup = from.endsWith('@g.us');
 
     // ===============================
-    // EXTRACT TEXT
+    // TEXT EXTRACTION (SAFE)
     // ===============================
-    let body =
+    const body =
       msg.message?.conversation ||
       msg.message?.extendedTextMessage?.text ||
       msg.message?.imageMessage?.caption ||
       msg.message?.videoMessage?.caption ||
       '';
 
-    body = (body || '').trim();
+    const text = (body || '').trim();
 
     const prefixes = getPrefixes();
-    const hasPrefix = prefixes.some(p => body.startsWith(p));
+    const hasPrefix = prefixes.some(p => text.startsWith(p));
 
     // ===============================
-    // GROUP SETTINGS LOAD
+    // GROUP SETTINGS (SAFE LOAD)
     // ===============================
-    let groupSettings = null;
+    let groupSettings = {};
 
     if (isGroup) {
       try {
-        groupSettings = db.getGroupSettings(from);
-      } catch (e) {
+        groupSettings = db.getGroupSettings(from) || {};
+      } catch {
         groupSettings = {};
       }
     }
@@ -75,83 +73,75 @@ const handleMessage = async (sock, msg) => {
     // ===============================
     // 🚫 ANTI-LINK SYSTEM
     // ===============================
-    if (isGroup && groupSettings?.antilink) {
+    if (isGroup && groupSettings.antilink) {
       const linkRegex = /(https?:\/\/|www\.|chat\.whatsapp\.com)/gi;
 
-      if (linkRegex.test(body)) {
+      if (linkRegex.test(text)) {
         await sock.sendMessage(from, { delete: msg.key }).catch(() => {});
         return sock.sendMessage(from, {
-          text: '🚫 Anti-Link System Activated\n\nLinks are not allowed in this group.',
+          text: '🚫 Anti-Link Activated\nLinks are not allowed here.',
           quoted: msg
         });
       }
     }
 
     // ===============================
-    // 🚫 ANTI-TAG SYSTEM
+    // 🚫 ANTI TAG / MENTION SPAM
     // ===============================
-    if (isGroup && groupSettings?.antitag) {
-      const mentions = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+    if (isGroup && groupSettings.antitag) {
+      const mentions =
+        msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
 
       if (mentions.length >= 5) {
         await sock.sendMessage(from, { delete: msg.key }).catch(() => {});
         return sock.sendMessage(from, {
-          text: '🚫 Anti-Tag System Activated\n\nMass tagging is not allowed.',
+          text: '🚫 Anti-Tag Activated\nMass tagging is not allowed.',
           quoted: msg
         });
       }
     }
 
-    // ===============================
-    // 🚫 ANTI GROUP MENTION SYSTEM
-    // ===============================
-    if (isGroup && groupSettings?.antigroupmention) {
-      const mentions = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+    if (isGroup && groupSettings.antigroupmention) {
+      const mentions =
+        msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
 
       if (mentions.length >= 5) {
         await sock.sendMessage(from, { delete: msg.key }).catch(() => {});
         return sock.sendMessage(from, {
-          text: '🚫 Anti-Group-Mention Activated\n\nSpam mentioning is blocked.',
+          text: '🚫 Anti-Group-Mention Activated\nSpam mentioning blocked.',
           quoted: msg
         });
       }
     }
 
     // ===============================
-    // 👋 WELCOME / GOODBYE HOOK PLACEHOLDER
-    // ===============================
-    // (You will connect this in group participant update event)
-    // kept here for structure consistency
-
-    // ===============================
-    // 🤖 AI AUTO REPLY (ONLY IF NO PREFIX)
+    // 🤖 AI AUTO REPLY (ONLY NON PREFIX)
     // ===============================
     if (!hasPrefix && !msg.key.fromMe && config.aiMode) {
       try {
         const res = await axios.get(
-          `https://api.affiliateplus.xyz/api/chatbot?message=${encodeURIComponent(body)}&botname=${config.botName}&ownername=${config.ownerName}`
+          `https://api.affiliateplus.xyz/api/chatbot?message=${encodeURIComponent(text)}&botname=${config.botName}&ownername=${config.ownerName}`
         );
 
-        return sock.sendMessage(from, {
-          text: `🤖 ${res.data.message}`
-        }, { quoted: msg });
-
+        if (res?.data?.message) {
+          return sock.sendMessage(from, {
+            text: `🤖 ${res.data.message}`
+          }, { quoted: msg });
+        }
       } catch (e) {
         console.log('AI Error:', e.message);
       }
     }
 
     // ===============================
-    // OWNER PROTECTION
+    // OWNER CHECK
     // ===============================
     const isOwner = checkOwner(sender);
 
     if (!isOwner) {
-      if (
-        body.toLowerCase().includes('setname') ||
-        body.toLowerCase().includes('setpp') ||
-        body.toLowerCase().includes('setbio')
-      ) {
+      const blockedWords = ['setname', 'setpp', 'setbio'];
+
+      if (blockedWords.some(w => text.toLowerCase().includes(w))) {
         return sock.sendMessage(from, {
           text: '❌ Only Professor Sahil can change bot identity.'
         }, { quoted: msg });
@@ -159,38 +149,29 @@ const handleMessage = async (sock, msg) => {
     }
 
     // ===============================
-    // PREFIX CHECK
+    // PREFIX VALIDATION
     // ===============================
-    let usedPrefix = null;
-
-    for (const p of prefixes) {
-      if (body.startsWith(p)) {
-        usedPrefix = p;
-        break;
-      }
-    }
-
+    const usedPrefix = prefixes.find(p => text.startsWith(p));
     if (!usedPrefix) return;
 
     // ===============================
-    // PARSE COMMAND
+    // COMMAND PARSING
     // ===============================
-    const args = body.slice(usedPrefix.length).trim().split(/ +/);
-    const commandName = args.shift().toLowerCase();
+    const args = text.slice(usedPrefix.length).trim().split(/ +/);
+    const commandName = args.shift()?.toLowerCase();
 
     const command = commands.get(commandName);
     if (!command) return;
 
     // ===============================
-    // ⏳ COOLDOWN SYSTEM
+    // COOLDOWN SYSTEM
     // ===============================
     const now = Date.now();
     const key = sender + commandName;
-    const last = cooldowns.get(key) || 0;
 
-    if (now - last < 3000) {
+    if (cooldowns.has(key) && now - cooldowns.get(key) < 3000) {
       return sock.sendMessage(from, {
-        text: '⏳ Please wait...'
+        text: '⏳ Slow down... wait a moment.'
       }, { quoted: msg });
     }
 
@@ -201,7 +182,7 @@ const handleMessage = async (sock, msg) => {
     // ===============================
     if (command.ownerOnly && !isOwner) {
       return sock.sendMessage(from, {
-        text: '❌ This command is only for the owner.'
+        text: '❌ Owner only command.'
       }, { quoted: msg });
     }
 
