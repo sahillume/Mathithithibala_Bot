@@ -12,7 +12,7 @@ module.exports = {
   sessionID: process.env.SESSION_ID || '',
 
   // 🔗 SYSTEM LINKS
-  newsletterJid: '', // 📢 WhatsApp newsletter ID
+  newsletterJid: 'newsletterJid: '120363406672648713@newsletter',', // 📢 WhatsApp newsletter ID
   updateZipUrl: '',
 
   // 🎨 STICKER CONFIG
