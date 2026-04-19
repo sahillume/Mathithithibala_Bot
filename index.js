@@ -1,5 +1,5 @@
 /**
- * WhatsApp MD Bot - MAIN CORE (PRO MAX STABLE)
+ * WhatsApp MD Bot - MAIN CORE (PRO MAX FINAL)
  * BOT: Mathithibala_Bot
  * OWNER: Professor Sahil
  */
@@ -13,6 +13,7 @@ process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
 
 const {
   default: makeWASocket,
@@ -26,7 +27,21 @@ const config = require('./config');
 const handler = require('./handler');
 
 // ===============================
-// 🧠 MEMORY SYSTEM (ANTI DELETE SAFE MAP)
+// 🔐 PAIR INPUT SYSTEM
+// ===============================
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+const askNumber = () => {
+  return new Promise((resolve) => {
+    rl.question('📱 Enter WhatsApp number (e.g 2783xxxxxxx): ', resolve);
+  });
+};
+
+// ===============================
+// 🧠 MEMORY (ANTI DELETE)
 // ===============================
 const messageStore = new Map();
 
@@ -46,6 +61,13 @@ console.log = (...args) => {
 // ===============================
 async function startBot() {
   try {
+    const usePairingCode = true; // 🔥 enable pairing
+    let phoneNumber;
+
+    if (usePairingCode) {
+      phoneNumber = await askNumber();
+    }
+
     const { state, saveCreds } = await useMultiFileAuthState('./session');
     const { version } = await fetchLatestBaileysVersion();
 
@@ -60,21 +82,43 @@ async function startBot() {
     });
 
     // ===============================
+    // 🔐 PAIR CODE SYSTEM
+    // ===============================
+    if (usePairingCode && !sock.authState.creds.registered) {
+      setTimeout(async () => {
+        try {
+          const code = await sock.requestPairingCode(phoneNumber);
+
+          console.log(`
+🔑 =========================
+   PAIR CODE GENERATED
+=========================
+
+📱 Number: ${phoneNumber}
+🔐 Code: ${code}
+
+👉 WhatsApp > Linked Devices
+👉 Link with code
+
+=========================
+`);
+        } catch (err) {
+          console.log('❌ Pairing error:', err.message);
+        }
+      }, 3000);
+    }
+
+    // ===============================
     // 🔗 CONNECTION EVENTS
     // ===============================
     sock.ev.on('connection.update', async (update) => {
       const { connection, qr, lastDisconnect } = update;
 
-      // 📱 QR
-      if (qr) {
+      // 📱 QR fallback
+      if (qr && !usePairingCode) {
         console.clear();
         console.log(`📱 SCAN QR CODE:\n`);
         qrcode.generate(qr, { small: true });
-
-        console.log(`
-👑 Owner: ${config.ownerName}
-🤖 Bot: ${config.botName}
-`);
       }
 
       // ✅ CONNECTED
@@ -86,16 +130,13 @@ async function startBot() {
 ⚡ Pro System Active
 `);
 
-        // profile status
         try {
           await sock.updateProfileStatus(
             `🤖 ${config.botName} | 👑 ${config.ownerName}`
           );
         } catch (e) {}
 
-        // ===============================
-        // 📢 NEWSLETTER AUTO POST (SAFE)
-        // ===============================
+        // 📢 Newsletter
         try {
           if (config.newsletterJid) {
             await sock.sendMessage(config.newsletterJid, {
@@ -104,9 +145,9 @@ async function startBot() {
 
 👑 Owner: ${config.ownerName}
 ⚡ Status: Active
-🕒 Time: ${new Date().toLocaleString()}
+🕒 ${new Date().toLocaleString()}
 
-🔥 Powered by Sahil Pro System`
+🔥 Sahil Pro System`
             });
           }
         } catch (e) {
@@ -119,7 +160,7 @@ async function startBot() {
         const reason = lastDisconnect?.error?.output?.statusCode;
 
         if (reason === DisconnectReason.loggedOut) {
-          console.log('❌ Session expired. Delete session & rescan QR.');
+          console.log('❌ Session expired. Delete session & reconnect.');
           process.exit(0);
         }
 
@@ -143,9 +184,12 @@ async function startBot() {
           const chat = msg.key.remoteJid;
           if (chat === 'status@broadcast') continue;
 
-          // 🧠 SAVE FOR ANTI DELETE
+          // 🧠 STORE MESSAGE (SAFE COPY)
           if (msg.key?.id) {
-            messageStore.set(msg.key.id, msg);
+            messageStore.set(
+              msg.key.id,
+              JSON.parse(JSON.stringify(msg))
+            );
           }
 
           await handler.handleMessage(sock, msg);
@@ -157,20 +201,21 @@ async function startBot() {
     });
 
     // ===============================
-    // 🗑️ ANTI DELETE SYSTEM (FIXED)
+    // 🗑️ ANTI DELETE (FIXED)
     // ===============================
     sock.ev.on('messages.update', async (updates) => {
       for (const update of updates) {
         try {
           if (update.update?.message === null) {
-            const deletedMsg = messageStore.get(update.key.id);
-            if (!deletedMsg) return;
 
-            const ownerJid = (config.ownerNumbers?.[0] || '') + '@s.whatsapp.net';
+            const deletedMsg = messageStore.get(update.key.id);
+            if (!deletedMsg) continue;
+
+            const ownerJid = config.ownerNumbers[0] + '@s.whatsapp.net';
 
             await sock.sendMessage(ownerJid, {
               text:
-`🚨 DELETED MESSAGE DETECTED
+`🚨 *DELETED MESSAGE DETECTED*
 📍 Chat: ${update.key.remoteJid}`
             });
 
@@ -183,7 +228,7 @@ async function startBot() {
     });
 
     // ===============================
-    // 👁️ VIEW ONCE DETECTION (SAFE)
+    // 👁️ VIEW ONCE DETECTION
     // ===============================
     sock.ev.on('messages.upsert', async ({ messages }) => {
       for (const msg of messages) {
@@ -198,11 +243,11 @@ async function startBot() {
 
           if (!isViewOnce) continue;
 
-          const ownerJid = (config.ownerNumbers?.[0] || '') + '@s.whatsapp.net';
+          const ownerJid = config.ownerNumbers[0] + '@s.whatsapp.net';
 
           await sock.sendMessage(ownerJid, {
             text:
-`👁️ VIEW-ONCE DETECTED
+`👁️ *VIEW-ONCE DETECTED*
 📍 From: ${msg.key.remoteJid}`
           });
 
@@ -215,7 +260,7 @@ async function startBot() {
     });
 
     // ===============================
-    // 📦 COMMAND FOLDER CHECK
+    // 📦 COMMAND CHECK
     // ===============================
     const commandsPath = path.join(__dirname, 'commands');
 
