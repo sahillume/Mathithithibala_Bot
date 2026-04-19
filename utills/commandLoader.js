@@ -1,76 +1,45 @@
+/**
+ * Command Loader - Mathithibala_Bot
+ */
+
 const fs = require('fs');
 const path = require('path');
 
-// ===============================
-// 📦 LOAD COMMANDS
-// ===============================
-const loadCommands = () => {
+function loadCommands() {
   const commands = new Map();
 
-  const commandsPath = path.join(__dirname, '..', 'commands');
+  const commandsPath = path.join(__dirname, '../commands');
 
-  // ===========================
-  // 🛑 SAFE CHECK
-  // ===========================
-  if (!fs.existsSync(commandsPath)) {
-    console.log('⚠️ Commands folder not found');
-    return commands;
-  }
+  function readDir(dir) {
+    const files = fs.readdirSync(dir);
 
-  let totalLoaded = 0;
+    for (const file of files) {
+      const fullPath = path.join(dir, file);
 
-  // ===========================
-  // 📁 CATEGORY LOOP
-  // ===========================
-  const categories = fs.readdirSync(commandsPath);
-
-  for (const category of categories) {
-    const categoryPath = path.join(commandsPath, category);
-
-    try {
-      if (!fs.statSync(categoryPath).isDirectory()) continue;
-
-      const files = fs.readdirSync(categoryPath).filter(f => f.endsWith('.js'));
-
-      for (const file of files) {
-        const filePath = path.join(categoryPath, file);
-
+      if (fs.lstatSync(fullPath).isDirectory()) {
+        readDir(fullPath);
+      } else if (file.endsWith('.js')) {
         try {
-          delete require.cache[require.resolve(filePath)];
+          const cmd = require(fullPath);
 
-          const command = require(filePath);
-
-          // ===========================
-          // 🧠 VALIDATION
-          // ===========================
-          if (!command || !command.name || !command.execute) {
-            console.log(`⚠️ Skipped invalid command: ${file}`);
-            continue;
+          if (cmd?.name) {
+            commands.set(cmd.name, cmd);
           }
 
-          commands.set(command.name, command);
-          totalLoaded++;
-
-          // Aliases support
-          if (Array.isArray(command.aliases)) {
-            for (const alias of command.aliases) {
-              commands.set(alias, command);
-            }
+          if (cmd?.aliases?.length) {
+            cmd.aliases.forEach(a => commands.set(a, cmd));
           }
 
         } catch (err) {
-          console.log(`❌ Failed loading ${file}:`, err.message);
+          console.log(`❌ Failed loading command: ${file}`, err.message);
         }
       }
-
-    } catch (err) {
-      console.log(`❌ Category error (${category}):`, err.message);
     }
   }
 
-  console.log(`✅ Commands loaded: ${totalLoaded}`);
+  readDir(commandsPath);
 
   return commands;
-};
+}
 
 module.exports = { loadCommands };
