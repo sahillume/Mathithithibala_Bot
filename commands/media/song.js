@@ -1,5 +1,6 @@
 /**
- * Song Downloader - FIXED PRO VERSION
+ * 🎵 Song Downloader - PRO STABLE VERSION
+ * Multi API Fallback System
  */
 
 const yts = require('yt-search');
@@ -9,7 +10,7 @@ module.exports = {
   name: 'song',
   aliases: ['play', 'music', 'yta'],
   category: 'media',
-  description: 'Download audio from YouTube',
+  description: 'Download audio from YouTube (Stable)',
 
   async execute(sock, msg, args) {
     try {
@@ -23,14 +24,11 @@ module.exports = {
       }
 
       await sock.sendMessage(chatId, {
-        text: '⏳ Searching & preparing your song...'
+        text: '⏳ Searching your song...'
       }, { quoted: msg });
 
-      // ===============================
-      // 🔍 SEARCH YOUTUBE
-      // ===============================
+      // 🔍 SEARCH
       const search = await yts(text);
-
       if (!search?.videos?.length) {
         return sock.sendMessage(chatId, {
           text: '❌ No results found.'
@@ -41,61 +39,89 @@ module.exports = {
 
       await sock.sendMessage(chatId, {
         image: { url: video.thumbnail },
-        caption:
-`🎵 *${video.title}*
-⏱ Duration: ${video.timestamp}
-
-⏳ Downloading audio...`
+        caption: `🎵 *${video.title}*\n⏱ ${video.timestamp}\n\n⏳ Downloading...`
       }, { quoted: msg });
 
-      // ===============================
-      // 🔥 FIXED DOWNLOAD API
-      // ===============================
-      const apiURL = `https://api.giftedtech.web.id/api/download/ytmp3?url=${encodeURIComponent(video.url)}`;
+      let downloadUrl = null;
 
-      const res = await axios.get(apiURL, { timeout: 60000 });
+      // ===============================
+      // 🔁 MULTI API FALLBACK
+      // ===============================
 
-      const downloadUrl =
-        res.data?.result?.download_url ||
-        res.data?.result?.url ||
-        res.data?.download_url;
+      const apis = [
+        async () => {
+          const res = await axios.get(`https://api.siputzx.my.id/api/d/ytmp3`, {
+            params: { url: video.url }
+          });
+          return res.data?.data?.dl;
+        },
+
+        async () => {
+          const res = await axios.get(`https://api.vevioz.com/api/button/mp3/${video.url}`);
+          return `https://api.vevioz.com/api/button/mp3/${video.url}`;
+        },
+
+        async () => {
+          const res = await axios.get(`https://yt1s.io/api/ajaxSearch/index`, {
+            params: { q: video.url, vt: 'home' }
+          });
+          return null; // fallback skip (yt1s harder)
+        }
+      ];
+
+      // 🔁 TRY ALL APIs
+      for (const api of apis) {
+        try {
+          const url = await api();
+          if (url) {
+            downloadUrl = url;
+            break;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
 
       if (!downloadUrl) {
         return sock.sendMessage(chatId, {
-          text: '❌ Download link failed. Try another song.'
+          text: '❌ All download servers failed. Try another song.'
         }, { quoted: msg });
       }
 
       // ===============================
-      // 🎧 FETCH AUDIO
+      // 🎧 DOWNLOAD AUDIO
       // ===============================
-      const audioBuffer = await axios.get(downloadUrl, {
-        responseType: 'arraybuffer'
+      const audio = await axios.get(downloadUrl, {
+        responseType: 'arraybuffer',
+        timeout: 90000
       });
+
+      const buffer = Buffer.from(audio.data);
+
+      if (!buffer || buffer.length < 1000) {
+        return sock.sendMessage(chatId, {
+          text: '❌ Invalid audio received.'
+        }, { quoted: msg });
+      }
 
       // ===============================
       // 📤 SEND AUDIO
       // ===============================
       await sock.sendMessage(chatId, {
-        audio: Buffer.from(audioBuffer.data),
+        audio: buffer,
         mimetype: 'audio/mpeg',
         fileName: `${video.title}.mp3`
       }, { quoted: msg });
 
       await sock.sendMessage(chatId, {
-        text:
-`✅ *DOWNLOAD COMPLETE*
-
-🎵 ${video.title}
-🤖 Mathithibala Bot
-👨‍🏫 Professor Sahil`
+        text: `✅ Downloaded:\n🎵 ${video.title}\n\n🤖 Mathithibala Bot\n👨‍🏫 Professor Sahil`
       });
 
     } catch (err) {
-      console.log('Song Error:', err.message);
+      console.log('Song Error:', err);
 
       await sock.sendMessage(msg.key.remoteJid, {
-        text: '❌ Song download failed. Try again later.'
+        text: '❌ Failed to download song. Try again.'
       });
     }
   }
