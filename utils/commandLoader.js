@@ -6,33 +6,61 @@ function loadCommands() {
 
   const commandsPath = path.join(__dirname, '../commands');
 
+  // 🧠 SAFETY: ensure folder exists
+  if (!fs.existsSync(commandsPath)) {
+    console.log('❌ Commands folder not found!');
+    return commands;
+  }
+
   function readDir(dir) {
     const files = fs.readdirSync(dir);
 
     for (const file of files) {
       const fullPath = path.join(dir, file);
 
-      if (fs.lstatSync(fullPath).isDirectory()) {
-        readDir(fullPath);
-      } else if (file.endsWith('.js')) {
-        try {
+      try {
+        const stat = fs.lstatSync(fullPath);
+
+        if (stat.isDirectory()) {
+          readDir(fullPath);
+        } 
+        else if (file.endsWith('.js')) {
+
+          // 🧠 CLEAN CACHE (important for updates)
+          delete require.cache[require.resolve(fullPath)];
+
           const command = require(fullPath);
-          if (command?.name) {
-            commands.set(command.name, command);
+
+          if (!command) return;
+
+          // ===============================
+          // 📦 REGISTER MAIN COMMAND
+          // ===============================
+          if (command.name) {
+            commands.set(command.name.toLowerCase(), command);
           }
-          if (command?.aliases) {
+
+          // ===============================
+          // 🔁 REGISTER ALIASES
+          // ===============================
+          if (Array.isArray(command.aliases)) {
             for (const alias of command.aliases) {
-              commands.set(alias, command);
+              commands.set(alias.toLowerCase(), command);
             }
           }
-        } catch (e) {
-          console.log(`❌ Failed loading command: ${file}`);
+
         }
+      } catch (e) {
+        console.log(`❌ Failed loading command: ${file}`);
+        console.log(`   ↳ ${e.message}`);
       }
     }
   }
 
   readDir(commandsPath);
+
+  console.log(`📦 Loaded ${commands.size} command entries`);
+
   return commands;
 }
 
