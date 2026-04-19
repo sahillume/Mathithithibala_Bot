@@ -1,5 +1,5 @@
 /**
- * WhatsApp MD Bot - MAIN CORE (PRO MAX)
+ * WhatsApp MD Bot - MAIN CORE (PRO MAX STABLE)
  * BOT: Mathithibala_Bot
  * OWNER: Professor Sahil
  */
@@ -26,7 +26,7 @@ const config = require('./config');
 const handler = require('./handler');
 
 // ===============================
-// 🧠 MEMORY SYSTEM (ANTI-DELETE / LOG)
+// 🧠 MEMORY SYSTEM (ANTI DELETE SAFE MAP)
 // ===============================
 const messageStore = new Map();
 
@@ -65,6 +65,7 @@ async function startBot() {
     sock.ev.on('connection.update', async (update) => {
       const { connection, qr, lastDisconnect } = update;
 
+      // 📱 QR
       if (qr) {
         console.clear();
         console.log(`📱 SCAN QR CODE:\n`);
@@ -76,6 +77,7 @@ async function startBot() {
 `);
       }
 
+      // ✅ CONNECTED
       if (connection === 'open') {
         console.clear();
         console.log(`
@@ -84,16 +86,40 @@ async function startBot() {
 ⚡ Pro System Active
 `);
 
-        await sock.updateProfileStatus(
-          `🤖 ${config.botName} | 👑 ${config.ownerName}`
-        );
+        // profile status
+        try {
+          await sock.updateProfileStatus(
+            `🤖 ${config.botName} | 👑 ${config.ownerName}`
+          );
+        } catch (e) {}
+
+        // ===============================
+        // 📢 NEWSLETTER AUTO POST (SAFE)
+        // ===============================
+        try {
+          if (config.newsletterJid) {
+            await sock.sendMessage(config.newsletterJid, {
+              text:
+`🚀 *${config.botName} ONLINE*
+
+👑 Owner: ${config.ownerName}
+⚡ Status: Active
+🕒 Time: ${new Date().toLocaleString()}
+
+🔥 Powered by Sahil Pro System`
+            });
+          }
+        } catch (e) {
+          console.log('Newsletter error:', e.message);
+        }
       }
 
+      // ❌ DISCONNECTED
       if (connection === 'close') {
         const reason = lastDisconnect?.error?.output?.statusCode;
 
         if (reason === DisconnectReason.loggedOut) {
-          console.log('❌ Session expired. Delete session & scan again.');
+          console.log('❌ Session expired. Delete session & rescan QR.');
           process.exit(0);
         }
 
@@ -105,7 +131,7 @@ async function startBot() {
     sock.ev.on('creds.update', saveCreds);
 
     // ===============================
-    // 📩 MESSAGE LISTENER (PRO)
+    // 📩 MESSAGE HANDLER
     // ===============================
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type !== 'notify') return;
@@ -115,14 +141,13 @@ async function startBot() {
           if (!msg.message) continue;
 
           const chat = msg.key.remoteJid;
-
-          // ❌ ignore status (we handle separately)
           if (chat === 'status@broadcast') continue;
 
-          // 🧠 SAVE MESSAGE (ANTI DELETE SYSTEM)
-          messageStore.set(msg.key.id, msg);
+          // 🧠 SAVE FOR ANTI DELETE
+          if (msg.key?.id) {
+            messageStore.set(msg.key.id, msg);
+          }
 
-          // 🚀 MAIN HANDLER
           await handler.handleMessage(sock, msg);
 
         } catch (err) {
@@ -132,36 +157,38 @@ async function startBot() {
     });
 
     // ===============================
-    // 🗑️ DELETE DETECTION (ANTI DELETE PRO)
+    // 🗑️ ANTI DELETE SYSTEM (FIXED)
     // ===============================
     sock.ev.on('messages.update', async (updates) => {
       for (const update of updates) {
-        if (update.update?.message === null) {
-          const deletedMsg = messageStore.get(update.key.id);
+        try {
+          if (update.update?.message === null) {
+            const deletedMsg = messageStore.get(update.key.id);
+            if (!deletedMsg) return;
 
-          if (!deletedMsg) return;
+            const ownerJid = (config.ownerNumbers?.[0] || '') + '@s.whatsapp.net';
 
-          const owner = config.ownerNumbers[0] + '@s.whatsapp.net';
+            await sock.sendMessage(ownerJid, {
+              text:
+`🚨 DELETED MESSAGE DETECTED
+📍 Chat: ${update.key.remoteJid}`
+            });
 
-          await sock.sendMessage(owner, {
-            text: `🚨 *DELETED MESSAGE DETECTED*\n\n👤 ${update.key.remoteJid}`
-          });
-
-          await sock.sendMessage(owner, {
-            forward: deletedMsg
-          });
-        }
+            await sock.sendMessage(ownerJid, {
+              forward: deletedMsg
+            });
+          }
+        } catch (e) {}
       }
     });
 
     // ===============================
-    // 👁️ VIEW ONCE AUTO SAVE (VV PRO CORE)
+    // 👁️ VIEW ONCE DETECTION (SAFE)
     // ===============================
     sock.ev.on('messages.upsert', async ({ messages }) => {
       for (const msg of messages) {
         try {
           const m = msg.message;
-
           if (!m) continue;
 
           const isViewOnce =
@@ -171,13 +198,15 @@ async function startBot() {
 
           if (!isViewOnce) continue;
 
-          const owner = config.ownerNumbers[0] + '@s.whatsapp.net';
+          const ownerJid = (config.ownerNumbers?.[0] || '') + '@s.whatsapp.net';
 
-          await sock.sendMessage(owner, {
-            text: `👁️ *VIEW-ONCE DETECTED*\nFrom: ${msg.key.remoteJid}`
+          await sock.sendMessage(ownerJid, {
+            text:
+`👁️ VIEW-ONCE DETECTED
+📍 From: ${msg.key.remoteJid}`
           });
 
-          await sock.sendMessage(owner, {
+          await sock.sendMessage(ownerJid, {
             forward: msg
           });
 
@@ -186,13 +215,14 @@ async function startBot() {
     });
 
     // ===============================
-    // 🧠 AUTO COMMAND LOADER CHECK
+    // 📦 COMMAND FOLDER CHECK
     // ===============================
     const commandsPath = path.join(__dirname, 'commands');
+
     if (!fs.existsSync(commandsPath)) {
-      console.log("❌ Commands folder missing!");
+      console.log('❌ Commands folder missing!');
     } else {
-      console.log("📦 Commands loaded successfully");
+      console.log('📦 Commands loaded successfully');
     }
 
   } catch (err) {
@@ -202,7 +232,7 @@ async function startBot() {
 }
 
 // ===============================
-// 🚀 INIT
+// 🚀 START
 // ===============================
 console.log(`
 🚀 Starting ${config.botName}
