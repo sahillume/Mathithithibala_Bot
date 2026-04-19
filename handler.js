@@ -1,18 +1,12 @@
 /**
- * Message Handler - Mathithibala Pro System (ULTIMATE CORE v2)
+ * 🔥 PRO MESSAGE HANDLER - Mathithibala_Bot (SAHIL SYSTEM UPGRADED)
  */
 
 const config = require('./config');
 const { loadCommands } = require('./utils/commandLoader');
 const axios = require('axios');
-const db = require('./database');
 
-// ===============================
-// ⏳ COOLDOWN SYSTEM
-// ===============================
 const cooldowns = new Map();
-
-// Load commands once
 const commands = loadCommands();
 
 // ===============================
@@ -20,12 +14,16 @@ const commands = loadCommands();
 // ===============================
 const getPrefixes = () => [
   config.prefix,
-  '.',
-  '!',
-  '#',
-  '/',
-  '?'
+  '.', '!', '#', '/', '?'
 ];
+
+// ===============================
+// OWNER CHECK (SAFE)
+// ===============================
+const isOwner = (sender = '') => {
+  const number = sender.split('@')[0];
+  return (config.ownerNumbers || []).includes(number);
+};
 
 // ===============================
 // MAIN HANDLER
@@ -36,91 +34,42 @@ const handleMessage = async (sock, msg) => {
 
     const from = msg.key.remoteJid;
 
-    const sender = msg.key.fromMe
-      ? sock.user.id.split(':')[0] + '@s.whatsapp.net'
-      : msg.key.participant || msg.key.remoteJid;
+    const sender =
+      msg.key.fromMe
+        ? sock.user?.id?.split(':')[0] + '@s.whatsapp.net'
+        : msg.key.participant ||
+          msg.participant ||
+          msg.key.remoteJid;
+
+    if (!sender) return;
 
     const isGroup = from.endsWith('@g.us');
 
     // ===============================
-    // TEXT EXTRACTION (SAFE)
+    // EXTRACT MESSAGE BODY
     // ===============================
-    const body =
+    let body =
       msg.message?.conversation ||
       msg.message?.extendedTextMessage?.text ||
       msg.message?.imageMessage?.caption ||
       msg.message?.videoMessage?.caption ||
       '';
 
-    const text = (body || '').trim();
+    body = (body || '').trim();
+    if (!body) return;
 
     const prefixes = getPrefixes();
-    const hasPrefix = prefixes.some(p => text.startsWith(p));
+    const usedPrefix = prefixes.find(p => body.startsWith(p));
+
+    const owner = isOwner(sender);
 
     // ===============================
-    // GROUP SETTINGS (SAFE LOAD)
+    // 🤖 AI AUTO REPLY (SAFE MODE)
     // ===============================
-    let groupSettings = {};
-
-    if (isGroup) {
-      try {
-        groupSettings = db.getGroupSettings(from) || {};
-      } catch {
-        groupSettings = {};
-      }
-    }
-
-    // ===============================
-    // 🚫 ANTI-LINK SYSTEM
-    // ===============================
-    if (isGroup && groupSettings.antilink) {
-      const linkRegex = /(https?:\/\/|www\.|chat\.whatsapp\.com)/gi;
-
-      if (linkRegex.test(text)) {
-        await sock.sendMessage(from, { delete: msg.key }).catch(() => {});
-        return sock.sendMessage(from, {
-          text: '🚫 Anti-Link Activated\nLinks are not allowed here.',
-          quoted: msg
-        });
-      }
-    }
-
-    // ===============================
-    // 🚫 ANTI TAG / MENTION SPAM
-    // ===============================
-    if (isGroup && groupSettings.antitag) {
-      const mentions =
-        msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
-
-      if (mentions.length >= 5) {
-        await sock.sendMessage(from, { delete: msg.key }).catch(() => {});
-        return sock.sendMessage(from, {
-          text: '🚫 Anti-Tag Activated\nMass tagging is not allowed.',
-          quoted: msg
-        });
-      }
-    }
-
-    if (isGroup && groupSettings.antigroupmention) {
-      const mentions =
-        msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
-
-      if (mentions.length >= 5) {
-        await sock.sendMessage(from, { delete: msg.key }).catch(() => {});
-        return sock.sendMessage(from, {
-          text: '🚫 Anti-Group-Mention Activated\nSpam mentioning blocked.',
-          quoted: msg
-        });
-      }
-    }
-
-    // ===============================
-    // 🤖 AI AUTO REPLY (ONLY NON PREFIX)
-    // ===============================
-    if (!hasPrefix && !msg.key.fromMe && config.aiMode) {
+    if (!usedPrefix && !msg.key.fromMe && config.aiMode) {
       try {
         const res = await axios.get(
-          `https://api.affiliateplus.xyz/api/chatbot?message=${encodeURIComponent(text)}&botname=${config.botName}&ownername=${config.ownerName}`
+          `https://api.affiliateplus.xyz/api/chatbot?message=${encodeURIComponent(body)}&botname=${config.botName}&ownername=${config.ownerName}`
         );
 
         if (res?.data?.message) {
@@ -128,37 +77,16 @@ const handleMessage = async (sock, msg) => {
             text: `🤖 ${res.data.message}`
           }, { quoted: msg });
         }
-      } catch (e) {
-        console.log('AI Error:', e.message);
-      }
+      } catch (e) {}
     }
 
-    // ===============================
-    // OWNER CHECK
-    // ===============================
-    const isOwner = checkOwner(sender);
-
-    if (!isOwner) {
-      const blockedWords = ['setname', 'setpp', 'setbio'];
-
-      if (blockedWords.some(w => text.toLowerCase().includes(w))) {
-        return sock.sendMessage(from, {
-          text: '❌ Only Professor Sahil can change bot identity.'
-        }, { quoted: msg });
-      }
-    }
-
-    // ===============================
-    // PREFIX VALIDATION
-    // ===============================
-    const usedPrefix = prefixes.find(p => text.startsWith(p));
     if (!usedPrefix) return;
 
     // ===============================
     // COMMAND PARSING
     // ===============================
-    const args = text.slice(usedPrefix.length).trim().split(/ +/);
-    const commandName = args.shift()?.toLowerCase();
+    const args = body.slice(usedPrefix.length).trim().split(/ +/);
+    const commandName = (args.shift() || '').toLowerCase();
 
     const command = commands.get(commandName);
     if (!command) return;
@@ -166,56 +94,51 @@ const handleMessage = async (sock, msg) => {
     // ===============================
     // COOLDOWN SYSTEM
     // ===============================
-    const now = Date.now();
     const key = sender + commandName;
+    const now = Date.now();
+    const last = cooldowns.get(key) || 0;
 
-    if (cooldowns.has(key) && now - cooldowns.get(key) < 3000) {
+    const cooldownTime = command.cooldown || 3000;
+
+    if (now - last < cooldownTime) {
       return sock.sendMessage(from, {
-        text: '⏳ Slow down... wait a moment.'
+        text: '⏳ Please wait before using this command.'
       }, { quoted: msg });
     }
 
     cooldowns.set(key, now);
 
     // ===============================
-    // OWNER ONLY CHECK
+    // OWNER PROTECTION
     // ===============================
-    if (command.ownerOnly && !isOwner) {
+    if (command.ownerOnly && !owner) {
       return sock.sendMessage(from, {
         text: '❌ Owner only command.'
       }, { quoted: msg });
     }
 
     // ===============================
-    // EXECUTE COMMAND
+    // EXECUTE COMMAND (ANTI CRASH WRAPPER)
     // ===============================
-    await command.execute(sock, msg, args, {
-      from,
-      sender,
-      isGroup,
-      isOwner,
-      config,
-      db,
+    try {
+      await command.execute(sock, msg, args, {
+        from,
+        sender,
+        isGroup,
+        isOwner: owner,
+        config,
 
-      reply: (text) =>
-        sock.sendMessage(from, { text }, { quoted: msg })
-    });
+        reply: (text) =>
+          sock.sendMessage(from, { text }, { quoted: msg })
+      });
+
+    } catch (cmdErr) {
+      console.log(`❌ Command Error (${commandName}):`, cmdErr.message);
+    }
 
   } catch (err) {
-    console.error('Handler Error:', err);
+    console.log('❌ Handler Crash:', err.message);
   }
 };
 
-// ===============================
-// OWNER CHECK
-// ===============================
-const checkOwner = (sender) => {
-  if (!sender) return false;
-
-  const number = sender.split('@')[0];
-  return config.ownerNumbers.includes(number);
-};
-
-module.exports = {
-  handleMessage
-};
+module.exports = { handleMessage };
