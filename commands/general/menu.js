@@ -1,5 +1,5 @@
 /**
- * Menu Command - FULL PRO VERSION
+ * Menu Command - FULL PRO VERSION (CHANNEL ADDED)
  * Mathithibala_Bot Pro | Professor Sahil System
  */
 
@@ -30,12 +30,21 @@ module.exports = {
       });
 
       const ownerName = config.ownerName || 'Professor Sahil';
+      const channel = config.newsletterJid || 'Not Set';
 
       let menuText = `╭━━『 *${config.botName}* 』━━╮\n\n`;
       menuText += `👋 Hello @${extra.sender.split('@')[0]}\n\n`;
       menuText += `⚡ Prefix: ${config.prefix}\n`;
       menuText += `📦 Commands: ${commands.size}\n`;
       menuText += `👑 Owner: ${ownerName}\n\n`;
+
+      // ===============================
+      // 📢 CHANNEL SECTION (NEW 🔥)
+      // ===============================
+      menuText += `┏━━━━━━━━━━━━━━━━━\n`;
+      menuText += `┃ 📢 OFFICIAL CHANNEL\n`;
+      menuText += `┗━━━━━━━━━━━━━━━━━\n`;
+      menuText += `│ ➜ ${channel}\n\n`;
 
       // ===============================
       // FUNCTION TO PRINT CATEGORY
@@ -65,38 +74,28 @@ module.exports = {
       menuText += printCategory("ANIME", "👾", categories.anime);
 
       // ===============================
-      // 🔥 SAHIL PRO SYSTEM (YOUR FOLDER)
+      // 👑 SAHIL PRO SYSTEM
       // ===============================
-      menuText += printCategory("SAHIL PRO SYSTEM", "👑", categories.sahilpro || categories['sahilPro.lume']);
+      menuText += printCategory(
+        "SAHIL PRO SYSTEM",
+        "👑",
+        categories.sahilpro || categories['sahilPro.lume']
+      );
 
       // ===============================
-      // ⚠️ ADMIN (ONLY CORE COMMANDS)
+      // 🛡️ ADMIN COMMANDS (FIXED)
       // ===============================
-      if (categories.admin) {
-        const filteredAdmin = categories.admin.filter(cmd =>
-          !cmd.category?.toLowerCase().includes('sahil')
-        );
-
-        menuText += printCategory("ADMIN (CORE)", "🛡️", filteredAdmin);
-      }
+      menuText += printCategory("ADMIN COMMANDS", "🛡️", categories.admin);
 
       // ===============================
-      // 👑 OWNER (ONLY CORE COMMANDS)
+      // 👑 OWNER COMMANDS
       // ===============================
-      if (categories.owner) {
-        const filteredOwner = categories.owner.filter(cmd =>
-          !cmd.category?.toLowerCase().includes('sahil')
-        );
-
-        menuText += printCategory("OWNER (CORE)", "👑", filteredOwner);
-      }
+      menuText += printCategory("OWNER COMMANDS", "👑", categories.owner);
 
       // ===============================
-      // TEXTMAKER FIX
+      // 🖋️ TEXTMAKER
       // ===============================
-      if (categories.textmaker) {
-        menuText += printCategory("TEXTMAKER", "🖋️", categories.textmaker);
-      }
+      menuText += printCategory("TEXTMAKER", "🖋️", categories.textmaker);
 
       menuText += `╰━━━━━━━━━━━━━━━━━\n\n`;
       menuText += `💡 Use ${config.prefix}help <command>\n`;
