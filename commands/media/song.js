@@ -1,11 +1,9 @@
 /**
- * Song Downloader - Download audio from YouTube
+ * Song Downloader - Ultra Pro Version
  * Enhanced by Professor Sahil
  */
 
 const yts = require('yt-search');
-const fs = require('fs');
-const path = require('path');
 const axios = require('axios');
 const APIs = require('../../utils/api');
 const { toAudio } = require('../../utils/converter');
@@ -14,8 +12,8 @@ module.exports = {
   name: 'song',
   aliases: ['play', 'music', 'yta'],
   category: 'media',
-  description: 'Download audio from YouTube',
-  usage: '.song <song name or YouTube link>',
+  description: 'Download audio from YouTube (Pro Mode)',
+  usage: '.song <name or URL>',
 
   async execute(sock, msg, args) {
     try {
@@ -24,86 +22,91 @@ module.exports = {
 
       if (!text) {
         return sock.sendMessage(chatId, {
-          text: 'Usage: .song <song name or YouTube link>'
+          text: '❌ Usage: .song <song name or YouTube link>'
         }, { quoted: msg });
       }
 
-      // 🎧 WAIT MESSAGE (AI SIMULATION)
-      const waitMsg = await sock.sendMessage(chatId, {
-        text: `⏳ *Wait... Sahil's AI is downloading the song for you*\n\n🎧 Please hold on (~30 seconds)\n⚡ Processing your request...`
+      // ⚡ START MESSAGE
+      await sock.sendMessage(chatId, {
+        text:
+`⏳ *Wait... Sahil AI is processing your request*
+🎧 Downloading song...
+⚡ Estimated time: ~20-30 seconds`
       }, { quoted: msg });
 
       let video;
 
-      // 🔥 Handle MIX / PLAYLIST LINKS
-      const isPlaylist = text.includes('list=') || text.includes('mix') || text.includes('playlist');
+      // 🔥 Detect playlist / MIX / radio / long links
+      const isPlaylist =
+        text.includes('list=') ||
+        text.includes('mix') ||
+        text.includes('playlist') ||
+        text.includes('&list');
 
-      if (text.includes('youtube.com') || text.includes('youtu.be')) {
+      if (text.includes('youtu')) {
         if (isPlaylist) {
-          // Try to fallback to first playable video via search
-          const searchQuery = text.split('v=')[1]?.split('&')[0] || text;
-          const search = await yts(searchQuery);
+          const search = await yts(text);
 
-          if (!search || !search.videos.length) {
+          if (!search?.videos?.length) {
             return sock.sendMessage(chatId, {
-              text: '❌ Cannot process MIX/Playlist link.'
+              text: '❌ Cannot process playlist/MIX link. Try a single song link or name.'
             }, { quoted: msg });
           }
 
-          video = search.videos[0];
+          video = search.videos[0]; // fallback first playable
         } else {
           video = { url: text };
         }
       } else {
         const search = await yts(text);
 
-        if (!search || !search.videos.length) {
+        if (!search?.videos?.length) {
           return sock.sendMessage(chatId, {
-            text: 'No results found.'
+            text: '❌ No results found for your query.'
           }, { quoted: msg });
         }
 
         video = search.videos[0];
       }
 
-      // 🎵 Update message
+      // 🎵 SHOW INFO
       await sock.sendMessage(chatId, {
         image: { url: video.thumbnail },
-        caption: `🎵 *Downloading:* ${video.title}\n⏱ Duration: ${video.timestamp}`
+        caption:
+`🎵 *${video.title}*
+⏱ Duration: ${video.timestamp || 'Unknown'}
+
+🤖 Processing download...`
       }, { quoted: msg });
 
-      let audioData;
       let audioBuffer;
       let success = false;
 
+      // 🔁 API fallback chain (safe & fast)
       const apiMethods = [
-        { name: 'EliteProTech', method: () => APIs.getEliteProTechDownloadByUrl(video.url) },
-        { name: 'Yupra', method: () => APIs.getYupraDownloadByUrl(video.url) },
-        { name: 'Okatsu', method: () => APIs.getOkatsuDownloadByUrl(video.url) },
-        { name: 'Izumi', method: () => APIs.getIzumiDownloadByUrl(video.url) }
+        () => APIs.getEliteProTechDownloadByUrl(video.url),
+        () => APIs.getYupraDownloadByUrl(video.url),
+        () => APIs.getOkatsuDownloadByUrl(video.url),
+        () => APIs.getIzumiDownloadByUrl(video.url)
       ];
 
-      for (const api of apiMethods) {
+      for (const method of apiMethods) {
         try {
-          audioData = await api.method();
-          const url = audioData.download || audioData.dl || audioData.url;
+          const data = await method();
+          const url = data?.download || data?.url || data?.dl;
 
           if (!url) continue;
 
-          try {
-            const res = await axios.get(url, {
-              responseType: 'arraybuffer',
-              timeout: 90000
-            });
+          const res = await axios.get(url, {
+            responseType: 'arraybuffer',
+            timeout: 90000
+          });
 
-            audioBuffer = Buffer.from(res.data);
+          audioBuffer = Buffer.from(res.data);
 
-            if (audioBuffer.length > 0) {
-              success = true;
-              break;
-            }
-          } catch (e) {
-            continue;
+          if (audioBuffer?.length > 0) {
+            success = true;
+            break;
           }
 
         } catch (e) {
@@ -112,19 +115,21 @@ module.exports = {
       }
 
       if (!success) {
-        throw new Error('All download sources failed');
+        return sock.sendMessage(chatId, {
+          text: '❌ All download sources failed. Please try another song.'
+        }, { quoted: msg });
       }
 
-      // 🎧 Convert if needed
+      // 🎧 Convert safely
       let finalBuffer = audioBuffer;
 
       try {
         finalBuffer = await toAudio(audioBuffer, 'mp3');
       } catch (e) {
-        // fallback keep original
+        finalBuffer = audioBuffer;
       }
 
-      // 🟢 SEND SONG
+      // 🎧 SEND AUDIO
       await sock.sendMessage(chatId, {
         audio: finalBuffer,
         mimetype: 'audio/mpeg',
@@ -132,22 +137,23 @@ module.exports = {
         ptt: false
       }, { quoted: msg });
 
-      // 🏁 FINAL SUCCESS MESSAGE
+      // 🏁 FINAL SUCCESS MESSAGE (UPGRADED BRANDING)
       await sock.sendMessage(chatId, {
         text:
-`✅ *DOWNLOAD COMPLETE!*
+`✅ *DOWNLOAD COMPLETE*
 
-🎵 ${video.title}
+🎵 Song: ${video.title}
 
 🤖 Successfully downloaded by *Mathithibala_Bot*
-👨‍🏫 Produced by *Professor Sahil*`
+👨‍🏫 Produced by *Professor Sahil*
+⚡ Powered by Sahil Pro System`
       });
 
     } catch (err) {
-      console.error('Song command error:', err);
+      console.error('Song Error:', err);
 
       await sock.sendMessage(msg.key.remoteJid, {
-        text: '❌ Failed to download song. Try again later.'
+        text: '❌ Error occurred while downloading song. Try again.'
       }, { quoted: msg });
     }
   }
