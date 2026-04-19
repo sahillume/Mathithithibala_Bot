@@ -1,10 +1,11 @@
 /**
- * Message Handler - Sahil Pro System (Multi-Prefix Edition)
+ * Message Handler - Mathithibala Pro System (FULL UPGRADED CORE)
  */
 
 const config = require('./config');
 const { loadCommands } = require('./utils/commandLoader');
 const axios = require('axios');
+const db = require('./database'); // 👈 IMPORTANT ADDED
 
 // ===============================
 // ⏳ COOLDOWN SYSTEM
@@ -18,7 +19,6 @@ const commands = loadCommands();
 // MULTI PREFIX SUPPORT
 // ===============================
 const getPrefixes = () => {
-  // Default prefixes + custom prefix from config
   return [
     config.prefix,
     '.',
@@ -56,39 +56,96 @@ const handleMessage = async (sock, msg) => {
 
     body = (body || '').trim();
 
-    // ===============================
-    // 👑 OWNER CHECK
-    // ===============================
-    const isOwner = checkOwner(sender);
-
-    // ===============================
-    // 🤖 AI AUTO REPLY
-    // ===============================
     const prefixes = getPrefixes();
-
     const hasPrefix = prefixes.some(p => body.startsWith(p));
 
-    if (!hasPrefix && !msg.key.fromMe) {
-      if (config.aiMode) {
-        try {
-          const res = await axios.get(
-            `https://api.affiliateplus.xyz/api/chatbot?message=${encodeURIComponent(body)}&botname=${config.botName}&ownername=${config.ownerName}`
-          );
+    // ===============================
+    // GROUP SETTINGS LOAD
+    // ===============================
+    let groupSettings = null;
 
-          await sock.sendMessage(from, {
-            text: `🤖 ${res.data.message}`
-          }, { quoted: msg });
-
-          return;
-        } catch (e) {
-          console.log('AI Error:', e.message);
-        }
+    if (isGroup) {
+      try {
+        groupSettings = db.getGroupSettings(from);
+      } catch (e) {
+        groupSettings = {};
       }
     }
 
     // ===============================
-    // 🔒 OWNER PROTECTION
+    // 🚫 ANTI-LINK SYSTEM
     // ===============================
+    if (isGroup && groupSettings?.antilink) {
+      const linkRegex = /(https?:\/\/|www\.|chat\.whatsapp\.com)/gi;
+
+      if (linkRegex.test(body)) {
+        await sock.sendMessage(from, { delete: msg.key }).catch(() => {});
+        return sock.sendMessage(from, {
+          text: '🚫 Anti-Link System Activated\n\nLinks are not allowed in this group.',
+          quoted: msg
+        });
+      }
+    }
+
+    // ===============================
+    // 🚫 ANTI-TAG SYSTEM
+    // ===============================
+    if (isGroup && groupSettings?.antitag) {
+      const mentions = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+
+      if (mentions.length >= 5) {
+        await sock.sendMessage(from, { delete: msg.key }).catch(() => {});
+        return sock.sendMessage(from, {
+          text: '🚫 Anti-Tag System Activated\n\nMass tagging is not allowed.',
+          quoted: msg
+        });
+      }
+    }
+
+    // ===============================
+    // 🚫 ANTI GROUP MENTION SYSTEM
+    // ===============================
+    if (isGroup && groupSettings?.antigroupmention) {
+      const mentions = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+
+      if (mentions.length >= 5) {
+        await sock.sendMessage(from, { delete: msg.key }).catch(() => {});
+        return sock.sendMessage(from, {
+          text: '🚫 Anti-Group-Mention Activated\n\nSpam mentioning is blocked.',
+          quoted: msg
+        });
+      }
+    }
+
+    // ===============================
+    // 👋 WELCOME / GOODBYE HOOK PLACEHOLDER
+    // ===============================
+    // (You will connect this in group participant update event)
+    // kept here for structure consistency
+
+    // ===============================
+    // 🤖 AI AUTO REPLY (ONLY IF NO PREFIX)
+    // ===============================
+    if (!hasPrefix && !msg.key.fromMe && config.aiMode) {
+      try {
+        const res = await axios.get(
+          `https://api.affiliateplus.xyz/api/chatbot?message=${encodeURIComponent(body)}&botname=${config.botName}&ownername=${config.ownerName}`
+        );
+
+        return sock.sendMessage(from, {
+          text: `🤖 ${res.data.message}`
+        }, { quoted: msg });
+
+      } catch (e) {
+        console.log('AI Error:', e.message);
+      }
+    }
+
+    // ===============================
+    // OWNER PROTECTION
+    // ===============================
+    const isOwner = checkOwner(sender);
+
     if (!isOwner) {
       if (
         body.toLowerCase().includes('setname') ||
@@ -102,7 +159,7 @@ const handleMessage = async (sock, msg) => {
     }
 
     // ===============================
-    // CHECK PREFIX MATCH
+    // PREFIX CHECK
     // ===============================
     let usedPrefix = null;
 
@@ -125,7 +182,7 @@ const handleMessage = async (sock, msg) => {
     if (!command) return;
 
     // ===============================
-    // ⏳ COOLDOWN PER USER
+    // ⏳ COOLDOWN SYSTEM
     // ===============================
     const now = Date.now();
     const key = sender + commandName;
@@ -133,14 +190,14 @@ const handleMessage = async (sock, msg) => {
 
     if (now - last < 3000) {
       return sock.sendMessage(from, {
-        text: '⏳ Slow down, wait a moment...'
+        text: '⏳ Please wait...'
       }, { quoted: msg });
     }
 
     cooldowns.set(key, now);
 
     // ===============================
-    // OWNER-ONLY COMMAND
+    // OWNER ONLY CHECK
     // ===============================
     if (command.ownerOnly && !isOwner) {
       return sock.sendMessage(from, {
@@ -157,6 +214,7 @@ const handleMessage = async (sock, msg) => {
       isGroup,
       isOwner,
       config,
+      db,
 
       reply: (text) =>
         sock.sendMessage(from, { text }, { quoted: msg })
@@ -168,7 +226,7 @@ const handleMessage = async (sock, msg) => {
 };
 
 // ===============================
-// OWNER CHECK FUNCTION
+// OWNER CHECK
 // ===============================
 const checkOwner = (sender) => {
   if (!sender) return false;
