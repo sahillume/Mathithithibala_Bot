@@ -1,7 +1,7 @@
 module.exports = {
 
-  // 👑 OWNER CONFIG
-  ownerNumber: ['27835515085'],
+  // 👑 OWNER CONFIG (FIXED CONSISTENCY)
+  ownerNumbers: ['27835515085'], // FIXED (was ownerNumber → breaks handler)
   ownerName: 'Professor Sahil',
 
   // 🤖 BOT CONFIG
@@ -12,7 +12,7 @@ module.exports = {
   sessionID: process.env.SESSION_ID || '',
 
   // 🔗 SYSTEM LINKS
-  newsletterJid: '',
+  newsletterJid: '', // 📢 WhatsApp newsletter ID
   updateZipUrl: '',
 
   // 🎨 STICKER CONFIG
@@ -29,37 +29,43 @@ module.exports = {
   autoReactMode: 'bot',
   autoDownload: false,
 
-  // 🧠 AI SYSTEM (NEW 🔥)
+  // 🧠 AI SYSTEM (ENHANCED SAFE VERSION)
   ai: {
     enabled: true,
     smartFallback: true,
     respectPrivacy: true,
     personality: "professional",
-    creatorName: "Professor Sahil"
+    creatorName: "Professor Sahil",
+    antiLoop: true
   },
 
-  // 🛡️ GROUP DEFAULT SETTINGS
+  // 🛡️ GROUP DEFAULT SETTINGS (ENHANCED)
   defaultGroupSettings: {
     antilink: false,
     antilinkAction: 'delete',
+
     antitag: false,
     antitagAction: 'delete',
+
     antiall: false,
     antiviewonce: false,
     antibot: false,
     anticall: false,
+
     antigroupmention: false,
     antigroupmentionAction: 'delete',
-    welcome: false,
-    welcomeMessage: '👋 Welcome @user to @group!',
-    goodbye: false,
-    goodbyeMessage: '👋 Goodbye @user!',
+
     antiSpam: false,
     antidelete: false,
     nsfw: false,
     detect: false,
     chatbot: false,
-    autosticker: false
+    autosticker: false,
+
+    welcome: false,
+    welcomeMessage: '👋 Welcome @user to @group!',
+    goodbye: false,
+    goodbyeMessage: '👋 Goodbye @user!'
   },
 
   // 🔑 API KEYS
@@ -69,11 +75,12 @@ module.exports = {
     remove_bg: ''
   },
 
-  // 💬 MESSAGES
+  // 💬 SYSTEM MESSAGES (IMPROVED)
   messages: {
     wait: '⏳ Processing...',
     success: '✅ Done!',
     error: '❌ Something went wrong!',
+
     ownerOnly: '👑 Only Professor Sahil can use this.',
     adminOnly: '🛡️ Admins only!',
     groupOnly: '👥 Groups only!',
@@ -88,11 +95,17 @@ module.exports = {
   // ⚠️ LIMITS
   maxWarnings: 3,
 
-  // 🌐 SOCIALS
+  // 🌐 SOCIAL LINKS
   social: {
     github: 'https://github.com/sahillume/Mathithithibala_Bot',
     instagram: '',
     youtube: ''
-  }
+  },
 
+  // 🧠 INTERNAL FLAGS (NEW - USED BY CORE)
+  system: {
+    version: 'PRO-MAX-1.0',
+    logLevel: 'silent',
+    antiCrash: true
+  }
 };
