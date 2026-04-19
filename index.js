@@ -1,18 +1,19 @@
 /**
- * WhatsApp MD Bot - Main Entry Point
+ * WhatsApp MD Bot - MAIN CORE (PRO MAX)
  * BOT: Mathithibala_Bot
  * OWNER: Professor Sahil
  */
 
 process.env.PUPPETEER_SKIP_DOWNLOAD = 'true';
 process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
-process.env.PUPPETEER_CACHE_DIR =
-  process.env.PUPPETEER_CACHE_DIR || '/tmp/puppeteer_cache_disabled';
 
 // ===============================
 // 📦 IMPORTS
 // ===============================
 const pino = require('pino');
+const fs = require('fs');
+const path = require('path');
+
 const {
   default: makeWASocket,
   useMultiFileAuthState,
@@ -25,14 +26,17 @@ const config = require('./config');
 const handler = require('./handler');
 
 // ===============================
-// 🧹 CLEAN CONSOLE
+// 🧠 MEMORY SYSTEM (ANTI-DELETE / LOG)
+// ===============================
+const messageStore = new Map();
+
+// ===============================
+// 🧹 CLEAN LOGS
 // ===============================
 const originalLog = console.log;
-const forbiddenPatterns = ['prekey', 'session', 'ratchet'];
-
 console.log = (...args) => {
   const msg = args.join(' ').toLowerCase();
-  if (!forbiddenPatterns.some(p => msg.includes(p))) {
+  if (!msg.includes('prekey') && !msg.includes('session')) {
     originalLog(...args);
   }
 };
@@ -42,51 +46,42 @@ console.log = (...args) => {
 // ===============================
 async function startBot() {
   try {
-    const sessionFolder = './session';
-
-    const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
+    const { state, saveCreds } = await useMultiFileAuthState('./session');
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
       version,
       printQRInTerminal: false,
-      browser: [config.botName, 'Chrome', '1.0'],
+      browser: [config.botName, 'Chrome', '5.0'],
       auth: state,
-      syncFullHistory: false,
       markOnlineOnConnect: true,
-      logger: pino({ level: 'silent' })
+      logger: pino({ level: 'silent' }),
+      syncFullHistory: false
     });
 
     // ===============================
-    // 🔗 CONNECTION HANDLER
+    // 🔗 CONNECTION EVENTS
     // ===============================
     sock.ev.on('connection.update', async (update) => {
       const { connection, qr, lastDisconnect } = update;
 
-      // 📱 QR
       if (qr) {
         console.clear();
-        console.log(`\n📱 SCAN QR TO CONNECT\n`);
+        console.log(`📱 SCAN QR CODE:\n`);
         qrcode.generate(qr, { small: true });
 
         console.log(`
-🔥 STEPS:
-1. Open WhatsApp
-2. Linked Devices
-3. Scan QR
-
 👑 Owner: ${config.ownerName}
 🤖 Bot: ${config.botName}
 `);
       }
 
-      // ✅ CONNECTED
       if (connection === 'open') {
         console.clear();
         console.log(`
-✅ ${config.botName} ONLINE
+✅ ${config.botName} CONNECTED
 👑 Owner: ${config.ownerName}
-⚡ Sahil Pro Mode Active
+⚡ Pro System Active
 `);
 
         await sock.updateProfileStatus(
@@ -94,24 +89,23 @@ async function startBot() {
         );
       }
 
-      // ❌ DISCONNECTED (IMPROVED RECONNECT)
       if (connection === 'close') {
         const reason = lastDisconnect?.error?.output?.statusCode;
 
         if (reason === DisconnectReason.loggedOut) {
-          console.log('❌ Logged out. Delete session and re-scan QR.');
+          console.log('❌ Session expired. Delete session & scan again.');
           process.exit(0);
-        } else {
-          console.log('⚠️ Disconnected. Reconnecting in 5s...');
-          setTimeout(startBot, 5000);
         }
+
+        console.log('⚠️ Reconnecting in 5 seconds...');
+        setTimeout(startBot, 5000);
       }
     });
 
     sock.ev.on('creds.update', saveCreds);
 
     // ===============================
-    // 📩 MESSAGE HANDLER (SAFE VERSION)
+    // 📩 MESSAGE LISTENER (PRO)
     // ===============================
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type !== 'notify') return;
@@ -119,28 +113,101 @@ async function startBot() {
       for (const msg of messages) {
         try {
           if (!msg.message) continue;
-          if (msg.key.remoteJid === 'status@broadcast') continue;
 
+          const chat = msg.key.remoteJid;
+
+          // ❌ ignore status (we handle separately)
+          if (chat === 'status@broadcast') continue;
+
+          // 🧠 SAVE MESSAGE (ANTI DELETE SYSTEM)
+          messageStore.set(msg.key.id, msg);
+
+          // 🚀 MAIN HANDLER
           await handler.handleMessage(sock, msg);
 
         } catch (err) {
-          console.log('⚠️ Handler error:', err?.message || err);
+          console.log('Handler Error:', err?.message);
         }
       }
     });
 
+    // ===============================
+    // 🗑️ DELETE DETECTION (ANTI DELETE PRO)
+    // ===============================
+    sock.ev.on('messages.update', async (updates) => {
+      for (const update of updates) {
+        if (update.update?.message === null) {
+          const deletedMsg = messageStore.get(update.key.id);
+
+          if (!deletedMsg) return;
+
+          const owner = config.ownerNumbers[0] + '@s.whatsapp.net';
+
+          await sock.sendMessage(owner, {
+            text: `🚨 *DELETED MESSAGE DETECTED*\n\n👤 ${update.key.remoteJid}`
+          });
+
+          await sock.sendMessage(owner, {
+            forward: deletedMsg
+          });
+        }
+      }
+    });
+
+    // ===============================
+    // 👁️ VIEW ONCE AUTO SAVE (VV PRO CORE)
+    // ===============================
+    sock.ev.on('messages.upsert', async ({ messages }) => {
+      for (const msg of messages) {
+        try {
+          const m = msg.message;
+
+          if (!m) continue;
+
+          const isViewOnce =
+            m?.viewOnceMessageV2 ||
+            m?.viewOnceMessageV2Extension ||
+            m?.viewOnceMessage;
+
+          if (!isViewOnce) continue;
+
+          const owner = config.ownerNumbers[0] + '@s.whatsapp.net';
+
+          await sock.sendMessage(owner, {
+            text: `👁️ *VIEW-ONCE DETECTED*\nFrom: ${msg.key.remoteJid}`
+          });
+
+          await sock.sendMessage(owner, {
+            forward: msg
+          });
+
+        } catch (e) {}
+      }
+    });
+
+    // ===============================
+    // 🧠 AUTO COMMAND LOADER CHECK
+    // ===============================
+    const commandsPath = path.join(__dirname, 'commands');
+    if (!fs.existsSync(commandsPath)) {
+      console.log("❌ Commands folder missing!");
+    } else {
+      console.log("📦 Commands loaded successfully");
+    }
+
   } catch (err) {
-    console.log('❌ Startup error:', err?.message || err);
+    console.log('❌ Startup error:', err?.message);
     setTimeout(startBot, 5000);
   }
 }
 
 // ===============================
-// 🚀 START BOT
+// 🚀 INIT
 // ===============================
 console.log(`
 🚀 Starting ${config.botName}
 👑 Owner: ${config.ownerName}
+🔥 Loading Pro System...
 `);
 
 startBot();
