@@ -1,71 +1,64 @@
 const express = require('express');
-const cors = require('cors');
+const path = require('path');
+const pino = require('pino');
+
 const {
   default: makeWASocket,
   useMultiFileAuthState,
   fetchLatestBaileysVersion
 } = require('@whiskeysockets/baileys');
 
-const pino = require('pino');
-const fs = require('fs');
-
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-const sessions = {};
+const sessions = {}; // store active sessions
 
 // ===============================
-// 📲 CREATE PAIR SESSION
+// 🚀 GENERATE PAIR CODE
 // ===============================
 app.post('/pair', async (req, res) => {
-  const { number } = req.body;
-
-  if (!number) return res.json({ error: 'Number required' });
-
-  const { state, saveCreds } = await useMultiFileAuthState(`./sessions/${number}`);
-  const { version } = await fetchLatestBaileysVersion();
-
-  const sock = makeWASocket({
-    version,
-    auth: state,
-    printQRInTerminal: false,
-    logger: pino({ level: 'silent' })
-  });
-
-  sock.ev.on('creds.update', saveCreds);
-
   try {
+    let { number } = req.body;
+
+    if (!number) {
+      return res.json({ error: "Number required" });
+    }
+
+    number = number.replace(/\D/g, '');
+
+    const sessionPath = path.join(__dirname, 'sessions', number);
+
+    const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+    const { version } = await fetchLatestBaileysVersion();
+
+    const sock = makeWASocket({
+      version,
+      auth: state,
+      logger: pino({ level: "silent" })
+    });
+
+    sock.ev.on('creds.update', saveCreds);
+
     const code = await sock.requestPairingCode(number);
 
     sessions[number] = sock;
 
-    return res.json({
+    res.json({
       success: true,
-      code
+      code: code
     });
 
-  } catch (e) {
-    return res.json({ error: e.message });
+  } catch (err) {
+    console.log(err);
+    res.json({ error: "Failed to generate pair code" });
   }
-});
-
-// ===============================
-// 📦 SESSION STATUS
-// ===============================
-app.get('/status/:number', (req, res) => {
-  const { number } = req.params;
-
-  if (sessions[number]) {
-    return res.json({ connected: true });
-  }
-
-  res.json({ connected: false });
 });
 
 // ===============================
 // 🌐 START SERVER
 // ===============================
-app.listen(3000, () => {
-  console.log("🚀 Bot Panel running on http://localhost:3000");
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`🌐 Panel running on http://localhost:${PORT}`);
 });
