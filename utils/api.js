@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 // ===============================
-// ⚙️ BASE CONFIG
+// ⚙️ BASE AXIOS INSTANCE
 // ===============================
 const api = axios.create({
   timeout: 30000,
@@ -12,40 +12,44 @@ const api = axios.create({
 });
 
 // ===============================
-// 🔁 SAFE REQUEST WRAPPER (FIXED)
+// 🔁 SAFE REQUEST ENGINE (IMPROVED)
 // ===============================
-const safeRequest = async (fn, retries = 2) => {
+const safeRequest = async (fn, retries = 3, delay = 1000) => {
   let error;
+
   for (let i = 0; i <= retries; i++) {
     try {
-      return await fn();
+      const res = await fn();
+
+      if (!res) throw new Error('Empty response');
+
+      return res;
     } catch (err) {
       error = err;
-      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+
+      await new Promise(r => setTimeout(r, delay * (i + 1)));
     }
   }
+
   throw error;
 };
 
 // ===============================
-// 🌐 API MODULE
+// 🌐 API ENGINE (PRO STABLE)
 // ===============================
 const APIs = {
 
   // ===========================
-  // 🤖 AI CHAT
+  // 🤖 AI CHAT (FALLBACK SYSTEM)
   // ===========================
-  chatAI: async (text, config) => {
+  chatAI: async (text) => {
     return safeRequest(async () => {
-      const res = await api.get(
-        `https://api.shizo.top/ai/gpt`,
-        {
-          params: {
-            apikey: 'shizo',
-            query: text
-          }
+      const res = await api.get(`https://api.shizo.top/ai/gpt`, {
+        params: {
+          apikey: 'shizo',
+          query: text
         }
-      );
+      });
 
       return res.data?.msg || res.data;
     });
@@ -60,12 +64,13 @@ const APIs = {
         `https://api.siputzx.my.id/api/ai/stablediffusion`,
         { params: { prompt } }
       );
-      return res.data;
+
+      return res.data?.result || res.data;
     });
   },
 
   // ===========================
-  // 🎵 YOUTUBE AUDIO
+  // 🎵 YOUTUBE AUDIO (FIXED SAFE OUTPUT)
   // ===========================
   ytAudio: async (url) => {
     return safeRequest(async () => {
@@ -73,7 +78,8 @@ const APIs = {
         `https://api.siputzx.my.id/api/d/ytmp3`,
         { params: { url } }
       );
-      return res.data;
+
+      return res.data?.result || res.data;
     });
   },
 
@@ -86,12 +92,13 @@ const APIs = {
         `https://api.siputzx.my.id/api/d/ytmp4`,
         { params: { url } }
       );
-      return res.data;
+
+      return res.data?.result || res.data;
     });
   },
 
   // ===========================
-  // 📸 INSTAGRAM
+  // 📸 INSTAGRAM (SAFE PARSE)
   // ===========================
   igDownload: async (url) => {
     return safeRequest(async () => {
@@ -99,7 +106,8 @@ const APIs = {
         `https://api.siputzx.my.id/api/d/igdl`,
         { params: { url } }
       );
-      return res.data;
+
+      return res.data?.result || res.data;
     });
   },
 
@@ -112,12 +120,13 @@ const APIs = {
         `https://api.siputzx.my.id/api/d/tiktok`,
         { params: { url } }
       );
-      return res.data;
+
+      return res.data?.result || res.data;
     });
   },
 
   // ===========================
-  // 🌦 WEATHER
+  // 🌦 WEATHER (SAFE)
   // ===========================
   weather: async (city) => {
     return safeRequest(async () => {
@@ -125,7 +134,8 @@ const APIs = {
         `https://api.siputzx.my.id/api/tools/weather`,
         { params: { city } }
       );
-      return res.data;
+
+      return res.data?.result || res.data;
     });
   },
 
@@ -138,12 +148,13 @@ const APIs = {
         `https://api.siputzx.my.id/api/tools/translate`,
         { params: { text, to } }
       );
-      return res.data;
+
+      return res.data?.result || res.data;
     });
   },
 
   // ===========================
-  // 😂 MEME
+  // 😂 MEME (FALLBACK SAFE)
   // ===========================
   meme: async () => {
     return safeRequest(async () => {
@@ -175,7 +186,7 @@ const APIs = {
   },
 
   // ===========================
-  // 🔗 SHORT URL
+  // 🔗 SHORT URL (FALLBACK SAFE)
   // ===========================
   shorten: async (url) => {
     return safeRequest(async () => {
@@ -183,7 +194,8 @@ const APIs = {
         'https://tinyurl.com/api-create.php',
         { params: { url } }
       );
-      return res.data;
+
+      return typeof res.data === 'string' ? res.data : null;
     });
   }
 };
