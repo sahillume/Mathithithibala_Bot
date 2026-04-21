@@ -1,31 +1,43 @@
 /**
- * Goodbye Handler - Sends message when a member leaves
- * Professional version by Mathithibala Bot
+ * Goodbye Handler - Stable Version
+ * Mathithibala Bot (Fixed by Sahil)
  */
 
 const db = require('../../database');
 
 module.exports = async (sock, update) => {
   try {
-    const { id, participants, action } = update;
 
-    // Only run when someone leaves or is removed
-    if (action !== 'remove') return;
+    // 🧠 Safe extraction (Baileys compatible)
+    const id = update?.id || update?.jid;
+    const participants = update?.participants || [];
+    const action = update?.action;
+
+    // ❌ Ignore invalid or startup events
+    if (!id || !participants.length || action !== 'remove') return;
 
     const groupSettings = db.getGroupSettings(id);
 
-    // ❌ If goodbye disabled → do nothing
+    // ❌ If goodbye disabled
     if (!groupSettings?.goodbye) return;
 
-    // 📌 Get group metadata
-    const metadata = await sock.groupMetadata(id);
-    const groupName = metadata.subject;
+    // 📌 Get group info safely
+    let metadata;
+    try {
+      metadata = await sock.groupMetadata(id);
+    } catch {
+      return;
+    }
+
+    const groupName = metadata?.subject || 'this group';
 
     for (const user of participants) {
+
       const userTag = `@${user.split('@')[0]}`;
 
-      // 💬 Default goodbye message
-      let message = groupSettings.goodbyeMessage ||
+      // 💬 Message template
+      let message =
+        groupSettings?.goodbyeMessage ||
         `👋 Goodbye ${userTag}
 
 We are sad to see you leave *${groupName}* 💔
@@ -33,14 +45,14 @@ We are sad to see you leave *${groupName}* 💔
 👑 Mathithibala Bot
 🤖 Powered by Professor Sahil`;
 
-      // Replace placeholders
+      // Replace placeholders safely
       message = message
         .replace(/@user/gi, userTag)
         .replace(/@group/gi, groupName);
 
-      // 🚀 Send message
+      // 🚀 Send goodbye message
       await sock.sendMessage(id, {
-        text: `╭━━『 👋 *GOODBYE* 』━━╮
+        text: `╭━━『 👋 GOODBYE 』━━╮
 
 ${message}
 
@@ -50,6 +62,6 @@ ${message}
     }
 
   } catch (error) {
-    console.error('Goodbye Handler Error:', error);
+    console.log('Goodbye Handler Error:', error.message || error);
   }
 };
