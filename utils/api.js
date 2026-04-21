@@ -1,10 +1,10 @@
 const axios = require('axios');
 
 // ===============================
-// ⚙️ BASE AXIOS INSTANCE
+// ⚙️ BASE AXIOS INSTANCE (PRO STABLE)
 // ===============================
 const api = axios.create({
-  timeout: 30000,
+  timeout: 20000,
   headers: {
     'User-Agent':
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -12,191 +12,210 @@ const api = axios.create({
 });
 
 // ===============================
-// 🔁 SAFE REQUEST ENGINE (IMPROVED)
+// 🔁 SAFE REQUEST ENGINE (FIXED)
 // ===============================
-const safeRequest = async (fn, retries = 3, delay = 1000) => {
-  let error;
+const safeRequest = async (fn, retries = 2) => {
+  let lastError;
 
   for (let i = 0; i <= retries; i++) {
     try {
       const res = await fn();
 
-      if (!res) throw new Error('Empty response');
+      if (!res || !res.data) {
+        throw new Error('Empty API response');
+      }
 
-      return res;
+      return res.data;
+
     } catch (err) {
-      error = err;
-
-      await new Promise(r => setTimeout(r, delay * (i + 1)));
+      lastError = err;
+      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
     }
   }
 
-  throw error;
+  throw lastError;
 };
 
 // ===============================
-// 🌐 API ENGINE (PRO STABLE)
+// 🌐 API ENGINE (CLEAN PRO VERSION)
 // ===============================
 const APIs = {
 
-  // ===========================
-  // 🤖 AI CHAT (FALLBACK SYSTEM)
-  // ===========================
+  // 🤖 AI CHAT
   chatAI: async (text) => {
-    return safeRequest(async () => {
-      const res = await api.get(`https://api.shizo.top/ai/gpt`, {
-        params: {
-          apikey: 'shizo',
-          query: text
-        }
-      });
+    try {
+      const data = await safeRequest(() =>
+        api.get(`https://api.shizo.top/ai/gpt`, {
+          params: {
+            apikey: 'shizo',
+            query: text
+          }
+        })
+      );
 
-      return res.data?.msg || res.data;
-    });
+      return data?.msg || '⚠️ AI failed to respond';
+    } catch {
+      return '❌ AI service unavailable';
+    }
   },
 
-  // ===========================
   // 🎨 IMAGE GENERATION
-  // ===========================
   generateImage: async (prompt) => {
-    return safeRequest(async () => {
-      const res = await api.get(
-        `https://api.siputzx.my.id/api/ai/stablediffusion`,
-        { params: { prompt } }
+    try {
+      const data = await safeRequest(() =>
+        api.get(`https://api.siputzx.my.id/api/ai/stablediffusion`, {
+          params: { prompt }
+        })
       );
 
-      return res.data?.result || res.data;
-    });
+      return data?.result || null;
+    } catch {
+      return null;
+    }
   },
 
-  // ===========================
-  // 🎵 YOUTUBE AUDIO (FIXED SAFE OUTPUT)
-  // ===========================
+  // 🎵 YT AUDIO
   ytAudio: async (url) => {
-    return safeRequest(async () => {
-      const res = await api.get(
-        `https://api.siputzx.my.id/api/d/ytmp3`,
-        { params: { url } }
+    try {
+      const data = await safeRequest(() =>
+        api.get(`https://api.siputzx.my.id/api/d/ytmp3`, {
+          params: { url }
+        })
       );
 
-      return res.data?.result || res.data;
-    });
+      return data?.result || null;
+    } catch {
+      return null;
+    }
   },
 
-  // ===========================
-  // 🎥 YOUTUBE VIDEO
-  // ===========================
+  // 🎥 YT VIDEO
   ytVideo: async (url) => {
-    return safeRequest(async () => {
-      const res = await api.get(
-        `https://api.siputzx.my.id/api/d/ytmp4`,
-        { params: { url } }
+    try {
+      const data = await safeRequest(() =>
+        api.get(`https://api.siputzx.my.id/api/d/ytmp4`, {
+          params: { url }
+        })
       );
 
-      return res.data?.result || res.data;
-    });
+      return data?.result || null;
+    } catch {
+      return null;
+    }
   },
 
-  // ===========================
-  // 📸 INSTAGRAM (SAFE PARSE)
-  // ===========================
+  // 📸 IG
   igDownload: async (url) => {
-    return safeRequest(async () => {
-      const res = await api.get(
-        `https://api.siputzx.my.id/api/d/igdl`,
-        { params: { url } }
+    try {
+      const data = await safeRequest(() =>
+        api.get(`https://api.siputzx.my.id/api/d/igdl`, {
+          params: { url }
+        })
       );
 
-      return res.data?.result || res.data;
-    });
+      return data?.result || null;
+    } catch {
+      return null;
+    }
   },
 
-  // ===========================
   // 🎵 TIKTOK
-  // ===========================
   tiktokDownload: async (url) => {
-    return safeRequest(async () => {
-      const res = await api.get(
-        `https://api.siputzx.my.id/api/d/tiktok`,
-        { params: { url } }
+    try {
+      const data = await safeRequest(() =>
+        api.get(`https://api.siputzx.my.id/api/d/tiktok`, {
+          params: { url }
+        })
       );
 
-      return res.data?.result || res.data;
-    });
+      return data?.result || null;
+    } catch {
+      return null;
+    }
   },
 
-  // ===========================
-  // 🌦 WEATHER (SAFE)
-  // ===========================
+  // 🌦 WEATHER
   weather: async (city) => {
-    return safeRequest(async () => {
-      const res = await api.get(
-        `https://api.siputzx.my.id/api/tools/weather`,
-        { params: { city } }
+    try {
+      const data = await safeRequest(() =>
+        api.get(`https://api.siputzx.my.id/api/tools/weather`, {
+          params: { city }
+        })
       );
 
-      return res.data?.result || res.data;
-    });
+      return data?.result || null;
+    } catch {
+      return null;
+    }
   },
 
-  // ===========================
   // 🌍 TRANSLATE
-  // ===========================
   translate: async (text, to = 'en') => {
-    return safeRequest(async () => {
-      const res = await api.get(
-        `https://api.siputzx.my.id/api/tools/translate`,
-        { params: { text, to } }
+    try {
+      const data = await safeRequest(() =>
+        api.get(`https://api.siputzx.my.id/api/tools/translate`, {
+          params: { text, to }
+        })
       );
 
-      return res.data?.result || res.data;
-    });
+      return data?.result || text;
+    } catch {
+      return text;
+    }
   },
 
-  // ===========================
-  // 😂 MEME (FALLBACK SAFE)
-  // ===========================
+  // 😂 MEME
   meme: async () => {
-    return safeRequest(async () => {
-      const res = await api.get('https://meme-api.com/gimme');
-      return res.data;
-    });
+    try {
+      const data = await safeRequest(() =>
+        api.get('https://meme-api.com/gimme')
+      );
+
+      return data;
+    } catch {
+      return null;
+    }
   },
 
-  // ===========================
   // 💬 QUOTE
-  // ===========================
   quote: async () => {
-    return safeRequest(async () => {
-      const res = await api.get('https://api.quotable.io/random');
-      return res.data;
-    });
+    try {
+      const data = await safeRequest(() =>
+        api.get('https://api.quotable.io/random')
+      );
+
+      return data;
+    } catch {
+      return null;
+    }
   },
 
-  // ===========================
   // 😂 JOKE
-  // ===========================
   joke: async () => {
-    return safeRequest(async () => {
-      const res = await api.get(
-        'https://official-joke-api.appspot.com/random_joke'
+    try {
+      const data = await safeRequest(() =>
+        api.get('https://official-joke-api.appspot.com/random_joke')
       );
-      return res.data;
-    });
+
+      return data;
+    } catch {
+      return null;
+    }
   },
 
-  // ===========================
-  // 🔗 SHORT URL (FALLBACK SAFE)
-  // ===========================
+  // 🔗 SHORT LINK
   shorten: async (url) => {
-    return safeRequest(async () => {
-      const res = await api.get(
-        'https://tinyurl.com/api-create.php',
-        { params: { url } }
+    try {
+      const data = await safeRequest(() =>
+        api.get('https://tinyurl.com/api-create.php', {
+          params: { url }
+        })
       );
 
-      return typeof res.data === 'string' ? res.data : null;
-    });
+      return typeof data === 'string' ? data : null;
+    } catch {
+      return null;
+    }
   }
 };
 
