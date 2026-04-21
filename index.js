@@ -1,5 +1,5 @@
 /**
- * WhatsApp MD Bot - MAIN CORE (PRO FIXED VERSION)
+ * WhatsApp MD Bot - MAIN CORE (PRO FIXED COMBINED VERSION)
  */
 
 process.env.PUPPETEER_SKIP_DOWNLOAD = 'true';
@@ -7,9 +7,6 @@ process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
 
 // ===============================
 const pino = require('pino');
-const fs = require('fs');
-const path = require('path');
-
 const {
   default: makeWASocket,
   useMultiFileAuthState,
@@ -21,12 +18,8 @@ const config = require('./config');
 const handler = require('./handler');
 
 // ===============================
-// 🧠 MEMORY STORE
-// ===============================
 const messageStore = new Map();
 
-// ===============================
-// 🚀 START BOT FUNCTION
 // ===============================
 async function startBot() {
   try {
@@ -35,28 +28,29 @@ async function startBot() {
 
     const sock = makeWASocket({
       version,
-      browser: [config.botName, 'Chrome', '5.0'],
+      browser: [config.botName || 'Bot', 'Chrome', '5.0'],
       auth: state,
-      printQRInTerminal: false,
+      printQRInTerminal: true, // IMPORTANT: QR fallback enabled
       logger: pino({ level: 'silent' }),
       markOnlineOnConnect: true
     });
 
     // ===============================
-    // 🔐 FIXED PAIR CODE SYSTEM (IMPORTANT FIX)
+    // 🔐 SMART AUTH (PAIR + QR FALLBACK)
     // ===============================
     const isRegistered = state?.creds?.registered;
 
-    if (!isRegistered && config.ownerNumbers?.length) {
-      const number = config.ownerNumbers[0];
+    const number = config.ownerNumbers?.[0];
 
-      setTimeout(async () => {
-        try {
-          console.log('🔄 Generating pairing code...');
+    if (!isRegistered) {
+      if (number) {
+        setTimeout(async () => {
+          try {
+            console.log('🔄 Generating Pair Code...');
 
-          const code = await sock.requestPairingCode(number);
+            const code = await sock.requestPairingCode(number);
 
-          console.log(`
+            console.log(`
 🔑 =========================
    PAIR CODE GENERATED
 =========================
@@ -68,15 +62,18 @@ async function startBot() {
 👉 Link with code
 
 =========================
-`);
-        } catch (err) {
-          console.log('❌ Pairing error:', err?.message);
-        }
-      }, 4000);
+            `);
+          } catch (err) {
+            console.log('⚠️ Pair failed → QR mode active');
+          }
+        }, 3000);
+      } else {
+        console.log('📱 No owner number → QR mode enabled');
+      }
     }
 
     // ===============================
-    // 🔗 CONNECTION EVENTS (FIXED)
+    // 🔗 CONNECTION EVENTS
     // ===============================
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect } = update;
@@ -95,11 +92,11 @@ async function startBot() {
         const reason = lastDisconnect?.error?.output?.statusCode;
 
         if (reason === DisconnectReason.loggedOut) {
-          console.log('❌ Session expired. Delete session folder and restart.');
+          console.log('❌ Session expired. Delete session folder.');
           process.exit(0);
         }
 
-        console.log('⚠️ Reconnecting bot...');
+        console.log('⚠️ Reconnecting...');
         setTimeout(startBot, 5000);
       }
     });
@@ -132,7 +129,7 @@ async function startBot() {
     });
 
     // ===============================
-    // 🗑️ ANTI DELETE SYSTEM (FIXED)
+    // 🗑️ ANTI DELETE SYSTEM
     // ===============================
     sock.ev.on('messages.update', async (updates) => {
       for (const update of updates) {
@@ -140,12 +137,12 @@ async function startBot() {
           if (update.update?.message === null) {
 
             const deletedMsg = messageStore.get(update.key.id);
-            if (!deletedMsg) return;
+            if (!deletedMsg) continue;
 
-            const ownerJid = config.ownerNumbers[0] + '@s.whatsapp.net';
+            const ownerJid = (config.ownerNumbers?.[0] || '') + '@s.whatsapp.net';
 
             await sock.sendMessage(ownerJid, {
-              text: `🚨 DELETED MESSAGE DETECTED\n📍 Chat: ${update.key.remoteJid}`
+              text: `🚨 DELETED MESSAGE\n📍 ${update.key.remoteJid}`
             });
 
             await sock.sendMessage(ownerJid, {
