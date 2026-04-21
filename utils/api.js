@@ -1,35 +1,44 @@
 const axios = require('axios');
 
 // ===============================
-// ⚙️ BASE AXIOS INSTANCE (PRO STABLE)
+// ⚙️ BASE AXIOS INSTANCE (PRO MAX)
 // ===============================
 const api = axios.create({
-  timeout: 20000,
+  timeout: 25000,
   headers: {
     'User-Agent':
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    Accept: 'application/json, text/plain, */*'
   }
 });
 
 // ===============================
-// 🔁 SAFE REQUEST ENGINE (FIXED)
+// 🔁 SMART RETRY ENGINE (UPGRADED)
 // ===============================
-const safeRequest = async (fn, retries = 2) => {
+const safeRequest = async (fn, retries = 3) => {
   let lastError;
 
   for (let i = 0; i <= retries; i++) {
     try {
       const res = await fn();
 
-      if (!res || !res.data) {
-        throw new Error('Empty API response');
+      if (!res) throw new Error('Empty response');
+
+      // 🔥 AUTO JSON VALIDATION
+      const data = res.data;
+
+      if (data === undefined || data === null) {
+        throw new Error('Invalid API response');
       }
 
-      return res.data;
+      return data;
 
     } catch (err) {
       lastError = err;
-      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+
+      // 🔥 SMART BACKOFF (faster + stable)
+      const delay = 800 * (i + 1);
+      await new Promise(r => setTimeout(r, delay));
     }
   }
 
@@ -37,11 +46,11 @@ const safeRequest = async (fn, retries = 2) => {
 };
 
 // ===============================
-// 🌐 API ENGINE (CLEAN PRO VERSION)
+// 🌐 API ENGINE (PRO MAX VERSION)
 // ===============================
 const APIs = {
 
-  // 🤖 AI CHAT
+  // 🤖 AI CHAT (IMPROVED)
   chatAI: async (text) => {
     try {
       const data = await safeRequest(() =>
@@ -53,9 +62,9 @@ const APIs = {
         })
       );
 
-      return data?.msg || '⚠️ AI failed to respond';
+      return data?.msg || '⚠️ AI failed';
     } catch {
-      return '❌ AI service unavailable';
+      return '❌ AI unavailable';
     }
   },
 
@@ -171,7 +180,7 @@ const APIs = {
         api.get('https://meme-api.com/gimme')
       );
 
-      return data;
+      return data || null;
     } catch {
       return null;
     }
@@ -184,7 +193,7 @@ const APIs = {
         api.get('https://api.quotable.io/random')
       );
 
-      return data;
+      return data || null;
     } catch {
       return null;
     }
@@ -197,7 +206,7 @@ const APIs = {
         api.get('https://official-joke-api.appspot.com/random_joke')
       );
 
-      return data;
+      return data || null;
     } catch {
       return null;
     }
