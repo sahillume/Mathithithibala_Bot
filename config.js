@@ -1,6 +1,6 @@
 module.exports = {
 
-  // 👑 OWNER CONFIG (PUBLIC EDITABLE)
+  // 👑 OWNER CONFIG (SAFE + MULTI OWNER SUPPORT)
   ownerNumbers: process.env.OWNER_NUMBER
     ? process.env.OWNER_NUMBER.split(',')
     : ['27835515085'],
@@ -11,27 +11,39 @@ module.exports = {
   botName: process.env.BOT_NAME || 'Mathithibala Bot',
   prefix: process.env.PREFIX || '.',
 
+  // ===============================
+  // 🔐 SESSION / AUTH SYSTEM
+  // ===============================
   sessionName: 'session',
   sessionID: process.env.SESSION_ID || '',
 
-  // 🔐 PAIR SYSTEM
+  // ===============================
+  // 🔥 PAIRING SYSTEM (FIXED LOGIC SUPPORT)
+  // ===============================
   pairing: {
-    enabled: true, // 🔥 allow pair code login
-    autoAskNumber: true // ask number in console
+    enabled: true,          // MUST be true for pair code mode
+    autoAskNumber: true,    // ask number in terminal
+    timeout: 60000          // prevents hanging pairing requests
   },
 
-  // 🔗 SYSTEM LINKS
-  newsletterJid: process.env.NEWSLETTER_JID || '', // e.g 1203xxx@newsletter
-  newsletterName: "Mathithibala Channel",
-  updateZipUrl: '',
+  // ===============================
+  // 🔗 LINKS / NEWSLETTER
+  // ===============================
+  newsletterJid: process.env.NEWSLETTER_JID || '',
+  newsletterName: 'Mathithibala Channel',
+  updateZipUrl: process.env.UPDATE_ZIP_URL || '',
 
-  // 🎨 STICKER CONFIG
+  // ===============================
+  // 🎨 STICKERS
+  // ===============================
   packname: 'Mathithibala Bot',
   author: 'Professor Sahil',
 
-  // ⚙️ BOT BEHAVIOR
+  // ===============================
+  // ⚙️ BOT BEHAVIOR (STABLE DEFAULTS)
+  // ===============================
   selfMode: false,
-  autoRead: false,
+  autoRead: true,
   autoTyping: true,
   autoBio: false,
   autoSticker: false,
@@ -39,7 +51,9 @@ module.exports = {
   autoReactMode: 'bot',
   autoDownload: false,
 
+  // ===============================
   // 🧠 AI SYSTEM
+  // ===============================
   ai: {
     enabled: true,
     smartFallback: true,
@@ -49,7 +63,9 @@ module.exports = {
     antiLoop: true
   },
 
-  // 🛡️ GROUP DEFAULT SETTINGS
+  // ===============================
+  // 🛡️ GROUP SETTINGS (FIXED STRUCTURE)
+  // ===============================
   defaultGroupSettings: {
     antilink: false,
     antilinkAction: 'delete',
@@ -66,26 +82,32 @@ module.exports = {
     antigroupmentionAction: 'delete',
 
     antiSpam: false,
-    antidelete: false, // 🔥 IMPORTANT
+    antidelete: true,   // 🔥 IMPORTANT (enable by default for safety)
+
     nsfw: false,
     detect: false,
     chatbot: false,
     autosticker: false,
 
     welcome: false,
-    welcomeMessage: '👋 Welcome @user to @group!',
     goodbye: false,
+
+    welcomeMessage: '👋 Welcome @user to @group!',
     goodbyeMessage: '👋 Goodbye @user!'
   },
 
+  // ===============================
   // 🔑 API KEYS
+  // ===============================
   apiKeys: {
     openai: process.env.OPENAI_KEY || '',
     deepai: '',
     remove_bg: ''
   },
 
+  // ===============================
   // 💬 SYSTEM MESSAGES
+  // ===============================
   messages: {
     wait: '⏳ Processing...',
     success: '✅ Done!',
@@ -99,22 +121,30 @@ module.exports = {
     invalidCommand: '❓ Unknown command. Try .menu'
   },
 
+  // ===============================
   // 🌍 TIMEZONE
+  // ===============================
   timezone: 'Africa/Johannesburg',
 
+  // ===============================
   // ⚠️ LIMITS
+  // ===============================
   maxWarnings: 3,
 
-  // 🌐 SOCIAL LINKS
+  // ===============================
+  // 🌐 SOCIAL
+  // ===============================
   social: {
     github: 'https://github.com/sahillume/Mathithithibala_Bot',
     instagram: '',
     youtube: ''
   },
 
+  // ===============================
   // 🧠 SYSTEM FLAGS
+  // ===============================
   system: {
-    version: 'PRO-MAX-2.0',
+    version: 'PRO-MAX-STABLE',
     logLevel: 'silent',
     antiCrash: true
   }
