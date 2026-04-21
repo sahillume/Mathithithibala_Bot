@@ -1,81 +1,85 @@
 <div align="center">
 
-<img src="utils/bot_image.jpg" width="200" alt="Mathithibala_Bot"/>
+<img src="utils/bot_image.jpg" width="180" style="border-radius:50%" />
 
-# 🤖 Mathithibala_Bot
+# ⚡ Mathithibala_Bot
 
-### ⚡ A Powerful WhatsApp Multi-Device Bot
+### 🤖 WhatsApp Multi-Device Automation Bot
 
-### 👑 Built by Professor Sahil
+### 👑 Built with Power by Professor Sahil
+
+---
 
 <p align="center">
-  <a href="https://github.com/sahillume/Mathithithibala_Bot">
-    <img src="https://img.shields.io/github/stars/sahillume/Mathithithibala_Bot?style=for-the-badge&color=yellow">
-  </a>
-  <a href="https://github.com/sahillume/Mathithithibala_Bot/forks">
-    <img src="https://img.shields.io/github/forks/sahillume/Mathithithibala_Bot?style=for-the-badge&color=orange">
-  </a>
-  <a href="https://github.com/sahillume/Mathithithibala_Bot/issues">
-    <img src="https://img.shields.io/github/issues/sahillume/Mathithithibala_Bot?style=for-the-badge&color=red">
-  </a>
-  <a href="https://github.com/sahillume/Mathithithibala_Bot/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/sahillume/Mathithithibala_Bot?style=for-the-badge">
-  </a>
+
+![Node](https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=node.js)
+![Baileys](https://img.shields.io/badge/Baileys-MD-blue?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
+
 </p>
 
 </div>
 
 ---
 
-## 🚀 About
+## ⚡ ABOUT THE PROJECT
 
-**Mathithibala_Bot** is a professional WhatsApp Multi-Device bot built using **Baileys**.
-Designed for **speed, power, and full control**, this is the **Sahil Pro Build** — optimized for real-world usage.
+**Mathithibala_Bot** is a powerful WhatsApp Multi-Device bot built using **Baileys**.
 
-👑 Developed & maintained by:
-**Professor Sahil**
+It is designed for:
+- ⚡ Speed
+- 🧠 Intelligence
+- 🔐 Full control
+- 🌐 Easy deployment
 
----
-
-## ✨ Features
-
-* ⚡ **Sahil Pro System** – advanced command handling
-* 🧠 **AI Chat System** – smart auto-replies
-* 👁️ **View Once Unlocker (VV Pro)**
-* 🗑️ **Anti-Delete Logger System**
-* 🛡️ **Advanced Group Protection**
-* 🎧 **Media Downloader (Songs, Videos, TikTok)**
-* 🧩 **Modular Commands System**
-* 🔐 **Owner & Admin Controls**
-* 🌐 **Deploy Anywhere (Panel / VPS / Local)**
+> 👑 Maintained by **Professor Sahil**
 
 ---
 
-## 🌐 Deployment Options
+## ✨ FEATURES
 
-You can run the bot on:
-
-* 💻 Local Machine
-* ☁️ VPS (Ubuntu/Linux)
-* 🚀 Hosting (Render / Railway / Heroku)
-* 🧩 Bot Panel System (KataBump Recommended)
-
-🔗 Katabump Hosting:
-https://katabump.com/en/
+✔ AI Smart Chat System  
+✔ View Once Unlock System  
+✔ Anti-Delete Message Logger  
+✔ Advanced Group Protection  
+✔ Media Downloader (YouTube / TikTok / Instagram)  
+✔ Modular Command System  
+✔ Owner Control Panel  
+✔ Auto Reconnect System  
 
 ---
 
-## ⚙️ Katabump Setup Guide
+## 🚀 DEPLOY OPTIONS
 
-To deploy on Katabump:
+You can deploy this bot on:
 
-1️⃣ Go to Katabump Panel  
-2️⃣ Upload `Mathithibala_Bot.zip`  
-3️⃣ Extract / Unarchive files  
-4️⃣ Move all files into root directory (`../`)  
-5️⃣ Open `config.js`  
-6️⃣ Edit:
+- 💻 Local PC  
+- ☁️ VPS (Linux / Ubuntu)  
+- 🌐 Hosting Panels  
+- 🧩 **Katabump Panel (Recommended)**  
 
-```js
-ownerName: "Your Name",
-ownerNumbers: ["278XXXXXXXX"]
+---
+
+## ⚡ 1-CLICK DEPLOY
+
+### 🔵 Katabump Hosting
+[![Deploy on Katabump](https://img.shields.io/badge/Deploy-Katabump-orange?style=for-the-badge)](https://katabump.com/en/)
+
+---
+
+## 📡 WHATSAPP CHANNEL
+
+📢 Join Updates & News:
+
+[![WhatsApp Channel](https://img.shields.io/badge/Join-WhatsApp%20Channel-25D366?style=for-the-badge&logo=whatsapp)](https://whatsapp.com/channel/0029VbCIUrC4tRrmjdI9QM1x)
+
+---
+
+## ⚙️ INSTALLATION
+
+```bash
+git clone https://github.com/sahillume/Mathithithibala_Bot.git
+cd Mathithithibala_Bot
+npm install
+node index.js
