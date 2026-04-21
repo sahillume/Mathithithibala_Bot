@@ -1,7 +1,7 @@
 process.env.PUPPETEER_SKIP_DOWNLOAD = 'true';
 
 const pino = require('pino');
-const qrcode = require('qrcode-terminal'); // ✅ QR FIX
+const qrcode = require('qrcode-terminal');
 
 const {
   default: makeWASocket,
@@ -24,22 +24,27 @@ async function startBot() {
       version,
       browser: [config.botName || 'Bot', 'Chrome', '1.0.0'],
       auth: state,
-      printQRInTerminal: false, // ✅ we handle QR manually
+      printQRInTerminal: false,
       logger: pino({ level: 'silent' })
     });
 
-    // =========================
-    // 🔐 SMART LOGIN SYSTEM
-    // =========================
     const number = config.ownerNumbers?.[0];
-    const isRegistered = !!state?.creds?.registered;
 
-    if (!isRegistered) {
-      setTimeout(async () => {
-        try {
-          if (number) {
+    // =========================
+    // 🔗 CONNECTION HANDLER (FIXED)
+    // =========================
+    sock.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect, qr } = update;
+
+      // ✅ SHOW QR
+      if (qr) {
+        console.log('\n📱 SCAN THIS QR CODE:\n');
+        qrcode.generate(qr, { small: true });
+
+        // ✅ GENERATE PAIR CODE ONLY HERE (NO LOOP)
+        if (number) {
+          try {
             console.log('🔄 Generating Pair Code...');
-
             const code = await sock.requestPairingCode(number);
 
             console.log(`
@@ -49,37 +54,24 @@ async function startBot() {
 🔐 ${code}
 =====================
 `);
-          } else {
-            console.log('📱 No owner number → QR mode active');
+          } catch {
+            console.log('⚠️ Pair code failed, use QR');
           }
-        } catch (err) {
-          console.log('⚠️ Pair failed → QR fallback');
         }
-      }, 3000);
-    }
-
-    // =========================
-    // 🔗 CONNECTION HANDLER (QR FIXED)
-    // =========================
-    sock.ev.on('connection.update', (update) => {
-      const { connection, lastDisconnect, qr } = update;
-
-      // ✅ THIS WAS MISSING → NOW QR WILL SHOW
-      if (qr) {
-        console.log('\n📱 SCAN THIS QR CODE:\n');
-        qrcode.generate(qr, { small: true });
       }
 
+      // ✅ CONNECTED
       if (connection === 'open') {
         console.log(`\n✅ ${config.botName} CONNECTED\n`);
       }
 
+      // ✅ RECONNECT FIX
       if (connection === 'close') {
         const reason = lastDisconnect?.error?.output?.statusCode;
 
         if (reason === DisconnectReason.loggedOut) {
-          console.log('❌ Session expired → delete session folder');
-          process.exit(0);
+          console.log('❌ Session expired → DELETE session folder manually');
+          return; // ❗ DON'T crash loop
         }
 
         console.log('⚠️ Reconnecting...');
@@ -130,8 +122,7 @@ async function startBot() {
             if (!oldMsg) continue;
 
             const ownerNumber = config.ownerNumbers?.[0];
-
-            if (!ownerNumber) return; // ✅ prevent crash if empty
+            if (!ownerNumber) return;
 
             const owner = ownerNumber + '@s.whatsapp.net';
 
