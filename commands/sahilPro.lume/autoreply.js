@@ -1,65 +1,105 @@
 /**
- * 🤖 Sahil Pro AutoReply System
+ * 🤖 Mathithibala_Bot Smart AutoReply System (PRO MAX)
  * Folder: commands/sahilPro.lume/
- * Project: Mathithibala_Bot
  * Owner: Professor Sahil
  */
 
 const axios = require('axios');
 const config = require('../../config');
 
+// ===============================
+// ⏱ SIMPLE IN-MEMORY COOLDOWN
+// ===============================
+const cooldown = new Map();
+
 module.exports = {
   name: 'autoreply',
   aliases: ['autobot', 'smartreply'],
   category: 'sahilPro',
-  description: 'AI Auto Reply System (Fallback Smart Chat)',
-  usage: '.autoreply (system internal)',
+  description: 'AI Auto Reply System (Internal Engine)',
+  usage: '.autoreply (internal)',
 
   /**
-   * ⚠️ This is NOT a user command.
-   * It is called inside handler.js when no prefix is used.
+   * ⚠️ INTERNAL ENGINE ONLY
    */
-
   async handle(sock, msg, text) {
     try {
-
       const chatId = msg.key.remoteJid;
+      if (!chatId || !text) return;
 
-      if (!text || text.trim().length < 2) return;
+      text = text.trim();
+      if (text.length < 2) return;
+
+      const sender = msg.key.participant || msg.key.remoteJid;
+      const key = `${chatId}_${sender}`;
 
       // ===============================
-      // 🤖 AI REQUEST (SAFE FALLBACK)
+      // 🚫 SIMPLE COOLDOWN (ANTI SPAM)
       // ===============================
-      const res = await axios.get(
-        `https://api.affiliateplus.xyz/api/chatbot`,
-        {
-          params: {
-            message: text,
-            botname: config.botName,
-            ownername: config.ownerName
+      const now = Date.now();
+      const last = cooldown.get(key) || 0;
+
+      if (now - last < 2500) return; // 2.5 sec delay per user
+      cooldown.set(key, now);
+
+      // ===============================
+      // 🤖 AI REQUEST (SAFE)
+      // ===============================
+      let reply;
+
+      try {
+        const res = await axios.get(
+          'https://api.affiliateplus.xyz/api/chatbot',
+          {
+            params: {
+              message: text,
+              botname: config.botName || 'Mathithibala_Bot',
+              ownername: config.ownerName || 'Professor Sahil'
+            },
+            timeout: 8000
           }
-        }
-      );
+        );
 
-      const reply =
-        res?.data?.message ||
-        "🤖 Sorry, I couldn't understand that.";
+        reply =
+          res?.data?.message ||
+          "🤖 I didn't understand that.";
+
+      } catch {
+        // ===============================
+        // 🔁 OFFLINE FALLBACK RESPONSE
+        // ===============================
+        const fallback = [
+          "🤖 I'm thinking...",
+          "⚡ Can you rephrase that?",
+          "🧠 I'm not sure, try again.",
+          "🤖 I'm still learning this topic."
+        ];
+
+        reply = fallback[Math.floor(Math.random() * fallback.length)];
+      }
 
       // ===============================
       // 📩 SEND RESPONSE
       // ===============================
       await sock.sendMessage(chatId, {
-        text: `🤖 *${config.botName} AI*\n\n${reply}`
+        text:
+`🤖 *Mathithibala_Bot AI*
+
+${reply}
+
+👑 Powered by Professor Sahil`
       }, { quoted: msg });
 
       return true;
 
     } catch (err) {
-      console.log("❌ AutoReply Error:", err.message);
+      console.log('❌ AutoReply Error:', err.message);
 
-      await sock.sendMessage(msg.key.remoteJid, {
-        text: "⚠️ AutoReply system error. Try again later."
-      }, { quoted: msg });
+      try {
+        await sock.sendMessage(msg.key.remoteJid, {
+          text: "⚠️ AI system temporarily unavailable."
+        }, { quoted: msg });
+      } catch {}
     }
   }
 };
