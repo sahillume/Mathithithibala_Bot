@@ -1,8 +1,8 @@
 module.exports = {
 
-  // 👑 OWNER CONFIG
+  // 👑 OWNER CONFIG (SAFE MULTI SUPPORT)
   ownerNumbers: process.env.OWNER_NUMBER
-    ? process.env.OWNER_NUMBER.split(',')
+    ? process.env.OWNER_NUMBER.split(',').map(n => n.replace(/\D/g, ''))
     : ['27835515085'],
 
   ownerName: process.env.OWNER_NAME || 'Professor Sahil',
@@ -15,11 +15,12 @@ module.exports = {
   sessionName: 'session',
   sessionID: process.env.SESSION_ID || '',
 
-  // 🔥 PAIRING SYSTEM
+  // 🔥 PAIRING SYSTEM (SAFE CONTROL)
   pairing: {
     enabled: true,
     autoAskNumber: true,
-    timeout: 60000
+    timeout: 60000,
+    fallbackToQR: true // 🔥 IMPORTANT FIX
   },
 
   // 🔗 NEWSLETTER + CHANNEL
