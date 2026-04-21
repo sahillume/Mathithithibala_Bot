@@ -1,5 +1,5 @@
 /**
- * WhatsApp MD Bot - MAIN CORE (PRO MAX FINAL FIXED)
+ * WhatsApp MD Bot - MAIN CORE (PRO MAX FINAL STABLE)
  * BOT: Mathithibala_Bot
  * OWNER: Professor Sahil
  */
@@ -98,13 +98,11 @@ async function startBot() {
     sock.ev.on('connection.update', async (update) => {
       const { connection, qr, lastDisconnect } = update;
 
-      // QR fallback
       if (qr && state.creds.registered) {
         console.log('📱 Scan QR if needed:');
         qrcode.generate(qr, { small: true });
       }
 
-      // CONNECTED
       if (connection === 'open') {
         console.clear();
         console.log(`
@@ -113,25 +111,23 @@ async function startBot() {
 ⚡ Pro System Active
 `);
 
-        // Update bio
         try {
           await sock.updateProfileStatus(
             `🤖 ${config.botName} | 👑 ${config.ownerName}`
           );
         } catch {}
 
-        // Newsletter auto send
+        // 📢 Newsletter
         try {
           if (config.newsletterJid) {
             await sock.sendMessage(config.newsletterJid, {
-              text:
-`🚀 *${config.botName} ONLINE*
+              text: `🚀 *${config.botName} ONLINE*
 
 👑 Owner: ${config.ownerName}
 ⚡ Status: Active
 🕒 ${new Date().toLocaleString()}
 
-🔥 Powered by Sahil Pro System`
+🔥 Sahil Pro System`
             });
           }
         } catch (e) {
@@ -139,7 +135,6 @@ async function startBot() {
         }
       }
 
-      // DISCONNECTED
       if (connection === 'close') {
         const reason = lastDisconnect?.error?.output?.statusCode;
 
@@ -168,9 +163,12 @@ async function startBot() {
           const chat = msg.key.remoteJid;
           if (chat === 'status@broadcast') continue;
 
-          // Save message
+          // SAVE MESSAGE
           if (msg.key?.id) {
-            messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
+            messageStore.set(
+              msg.key.id,
+              JSON.parse(JSON.stringify(msg))
+            );
           }
 
           await handler.handleMessage(sock, msg);
@@ -182,20 +180,22 @@ async function startBot() {
     });
 
     // ===============================
-    // 🗑️ ANTI DELETE
+    // 🗑️ ANTI DELETE (CONTROLLED)
     // ===============================
     sock.ev.on('messages.update', async (updates) => {
       for (const update of updates) {
         try {
-          if (update.update?.message === null) {
+          if (!config.defaultGroupSettings.antidelete) return;
 
+          if (update.update?.message === null) {
             const deletedMsg = messageStore.get(update.key.id);
             if (!deletedMsg) continue;
 
             const ownerJid = config.ownerNumbers[0] + '@s.whatsapp.net';
 
             await sock.sendMessage(ownerJid, {
-              text: `🚨 DELETED MESSAGE DETECTED\n📍 Chat: ${update.key.remoteJid}`
+              text: `🚨 *DELETED MESSAGE DETECTED*
+📍 Chat: ${update.key.remoteJid}`
             });
 
             await sock.sendMessage(ownerJid, {
@@ -212,6 +212,8 @@ async function startBot() {
     sock.ev.on('messages.upsert', async ({ messages }) => {
       for (const msg of messages) {
         try {
+          if (!config.defaultGroupSettings.antiviewonce) return;
+
           const m = msg.message;
           if (!m) continue;
 
@@ -225,7 +227,8 @@ async function startBot() {
           const ownerJid = config.ownerNumbers[0] + '@s.whatsapp.net';
 
           await sock.sendMessage(ownerJid, {
-            text: `👁️ VIEW-ONCE DETECTED\n📍 From: ${msg.key.remoteJid}`
+            text: `👁️ *VIEW-ONCE DETECTED*
+📍 From: ${msg.key.remoteJid}`
           });
 
           await sock.sendMessage(ownerJid, {
