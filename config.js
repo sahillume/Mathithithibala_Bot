@@ -1,9 +1,9 @@
 module.exports = {
 
-  // 👑 OWNER CONFIG (SAFE MULTI SUPPORT)
+  // 👑 OWNER CONFIG (FIXED SAFE)
   ownerNumbers: process.env.OWNER_NUMBER
     ? process.env.OWNER_NUMBER.split(',').map(n => n.replace(/\D/g, ''))
-    : ['27835515085'], // ✅ FIX: never leave empty
+    : [], // ❗ EMPTY = QR MODE (IMPORTANT FIX)
 
   ownerName: process.env.OWNER_NAME || 'Professor Sahil',
 
@@ -11,11 +11,11 @@ module.exports = {
   botName: process.env.BOT_NAME || 'Mathithibala Bot',
   prefix: process.env.PREFIX || '.',
 
-  // 🔐 SESSION / AUTH SYSTEM
+  // 🔐 SESSION
   sessionName: 'session',
   sessionID: process.env.SESSION_ID || '',
 
-  // 🔥 PAIRING SYSTEM (FIXED STABLE)
+  // 🔥 PAIRING SYSTEM
   pairing: {
     enabled: true,
     autoAskNumber: true,
@@ -23,7 +23,7 @@ module.exports = {
     fallbackToQR: true
   },
 
-  // 🔗 NEWSLETTER + CHANNEL
+  // 🔗 CHANNEL
   newsletterJid: process.env.NEWSLETTER_JID || '120363406672648713@newsletter',
 
   channel: {
@@ -48,7 +48,7 @@ module.exports = {
   autoReactMode: 'bot',
   autoDownload: false,
 
-  // 🧠 AI SYSTEM
+  // 🧠 AI
   ai: {
     enabled: true,
     smartFallback: true,
@@ -62,68 +62,35 @@ module.exports = {
   defaultGroupSettings: {
     antilink: false,
     antilinkAction: 'delete',
-
     antitag: false,
     antitagAction: 'delete',
-
-    antiall: false,
-    antiviewonce: false,
-    antibot: false,
-    anticall: false,
-
-    antigroupmention: false,
-    antigroupmentionAction: 'delete',
-
-    antiSpam: false,
     antidelete: true,
-
-    nsfw: false,
-    detect: false,
-    chatbot: false,
-    autosticker: false,
-
     welcome: false,
-    goodbye: false,
-
-    welcomeMessage: '👋 Welcome @user to @group!',
-    goodbyeMessage: '👋 Goodbye @user!'
+    goodbye: false
   },
 
-  // 🔑 API KEYS
+  // 🔑 API
   apiKeys: {
-    openai: process.env.OPENAI_KEY || '',
-    deepai: '',
-    remove_bg: ''
+    openai: process.env.OPENAI_KEY || ''
   },
 
-  // 💬 SYSTEM MESSAGES
+  // 💬 MESSAGES
   messages: {
     wait: '⏳ Processing...',
     success: '✅ Done!',
-    error: '❌ Something went wrong!',
-
-    ownerOnly: '👑 Only owner can use this.',
-    adminOnly: '🛡️ Admins only!',
-    groupOnly: '👥 Groups only!',
-    privateOnly: '💬 Private chat only!',
-    botAdminNeeded: '🤖 I need admin rights!',
-    invalidCommand: '❓ Unknown command. Try .menu'
+    error: '❌ Error!',
+    ownerOnly: '👑 Owner only!'
   },
 
-  // 🌍 TIMEZONE
   timezone: 'Africa/Johannesburg',
 
-  // ⚠️ LIMITS
   maxWarnings: 3,
 
-  // 🌐 SOCIAL
   social: {
     github: 'https://github.com/sahillume/Mathithithibala_Bot',
-    instagram: '',
-    youtube: 'https://youtube.com/@professorsahil-m7q?si=KzV352H1SYHZHWKt'
+    youtube: 'https://youtube.com/@professorsahil-m7q'
   },
 
-  // 🧠 SYSTEM FLAGS
   system: {
     version: 'PRO-MAX-STABLE',
     logLevel: 'silent',
