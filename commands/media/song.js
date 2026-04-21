@@ -1,37 +1,37 @@
 /**
- * 🎵 Song Downloader - PRO STABLE VERSION
- * Multi API Fallback System
+ * 🎵 Song Downloader - ULTRA STABLE VERSION (FIXED)
+ * Multi API + Safe Buffer + Clean Fallback
  */
 
-const yts = require('yt-search');
-const axios = require('axios');
+const yts = require("yt-search");
+const axios = require("axios");
 
 module.exports = {
-  name: 'song',
-  aliases: ['play', 'music', 'yta'],
-  category: 'media',
-  description: 'Download audio from YouTube (Stable)',
+  name: "song",
+  aliases: ["play", "music", "yta"],
+  category: "media",
+  description: "Download audio from YouTube (Stable Pro Fix)",
 
   async execute(sock, msg, args) {
     try {
-      const text = args.join(' ');
+      const text = args.join(" ");
       const chatId = msg.key.remoteJid;
 
       if (!text) {
         return sock.sendMessage(chatId, {
-          text: '❌ Usage: .song <song name>'
+          text: "❌ Usage: .song <song name>"
         }, { quoted: msg });
       }
 
       await sock.sendMessage(chatId, {
-        text: '⏳ Searching your song...'
+        text: "⏳ Searching song..."
       }, { quoted: msg });
 
       // 🔍 SEARCH
       const search = await yts(text);
       if (!search?.videos?.length) {
         return sock.sendMessage(chatId, {
-          text: '❌ No results found.'
+          text: "❌ No results found."
         }, { quoted: msg });
       }
 
@@ -42,34 +42,34 @@ module.exports = {
         caption: `🎵 *${video.title}*\n⏱ ${video.timestamp}\n\n⏳ Downloading...`
       }, { quoted: msg });
 
-      let downloadUrl = null;
-
       // ===============================
-      // 🔁 MULTI API FALLBACK
+      // 🔁 SAFE API FALLBACK SYSTEM
       // ===============================
 
       const apis = [
         async () => {
-          const res = await axios.get(`https://api.siputzx.my.id/api/d/ytmp3`, {
-            params: { url: video.url }
-          });
-          return res.data?.data?.dl;
+          try {
+            const res = await axios.get(
+              "https://api.siputzx.my.id/api/d/ytmp3",
+              { params: { url: video.url }, timeout: 20000 }
+            );
+            return res.data?.data?.dl;
+          } catch {
+            return null;
+          }
         },
 
         async () => {
-          const res = await axios.get(`https://api.vevioz.com/api/button/mp3/${video.url}`);
-          return `https://api.vevioz.com/api/button/mp3/${video.url}`;
-        },
-
-        async () => {
-          const res = await axios.get(`https://yt1s.io/api/ajaxSearch/index`, {
-            params: { q: video.url, vt: 'home' }
-          });
-          return null; // fallback skip (yt1s harder)
+          try {
+            return `https://api.vevioz.com/api/button/mp3/${video.url}`;
+          } catch {
+            return null;
+          }
         }
       ];
 
-      // 🔁 TRY ALL APIs
+      let downloadUrl = null;
+
       for (const api of apis) {
         try {
           const url = await api();
@@ -77,51 +77,65 @@ module.exports = {
             downloadUrl = url;
             break;
           }
-        } catch (e) {
+        } catch {
           continue;
         }
       }
 
       if (!downloadUrl) {
         return sock.sendMessage(chatId, {
-          text: '❌ All download servers failed. Try another song.'
+          text: "❌ All download servers failed. Try again later."
         }, { quoted: msg });
       }
 
       // ===============================
-      // 🎧 DOWNLOAD AUDIO
+      // 🎧 DOWNLOAD AUDIO (SAFE MODE)
       // ===============================
-      const audio = await axios.get(downloadUrl, {
-        responseType: 'arraybuffer',
-        timeout: 90000
-      });
 
-      const buffer = Buffer.from(audio.data);
+      let audioBuffer;
 
-      if (!buffer || buffer.length < 1000) {
+      try {
+        const audio = await axios.get(downloadUrl, {
+          responseType: "arraybuffer",
+          timeout: 60000,
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+            Accept: "*/*"
+          }
+        });
+
+        audioBuffer = Buffer.from(audio.data);
+      } catch (err) {
+        console.log("Download error:", err.message);
+      }
+
+      // 🧠 VALIDATION FIX
+      if (!audioBuffer || audioBuffer.length < 1000) {
         return sock.sendMessage(chatId, {
-          text: '❌ Invalid audio received.'
+          text: "❌ Failed to get valid audio file. Try another song."
         }, { quoted: msg });
       }
 
       // ===============================
       // 📤 SEND AUDIO
       // ===============================
+
       await sock.sendMessage(chatId, {
-        audio: buffer,
-        mimetype: 'audio/mpeg',
+        audio: audioBuffer,
+        mimetype: "audio/mpeg",
         fileName: `${video.title}.mp3`
       }, { quoted: msg });
 
       await sock.sendMessage(chatId, {
-        text: `✅ Downloaded:\n🎵 ${video.title}\n\n🤖 Mathithibala Bot\n👨‍🏫 Professor Sahil`
+        text: `✅ Done!\n🎵 ${video.title}\n\n🤖 Mathithibala Bot`
       });
 
     } catch (err) {
-      console.log('Song Error:', err);
+      console.log("Song Command Error:", err);
 
       await sock.sendMessage(msg.key.remoteJid, {
-        text: '❌ Failed to download song. Try again.'
+        text: "❌ Song download failed. Please try another one."
       });
     }
   }
