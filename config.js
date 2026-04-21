@@ -143,7 +143,7 @@ module.exports = {
   social: {
     github: 'https://github.com/sahillume/Mathithithibala_Bot',
     instagram: '',
-    youtube: ''
+    youtube: 'https://youtube.com/@professorsahil-m7q?si=KzV352H1SYHZHWKt'
   },
 
   // ===============================
