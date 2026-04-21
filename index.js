@@ -1,11 +1,9 @@
 /**
- * WhatsApp MD Bot - MAIN CORE (PRO FIXED COMBINED VERSION)
+ * WhatsApp MD Bot - FIXED STABLE CORE
  */
 
 process.env.PUPPETEER_SKIP_DOWNLOAD = 'true';
-process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
 
-// ===============================
 const pino = require('pino');
 const {
   default: makeWASocket,
@@ -17,10 +15,8 @@ const {
 const config = require('./config');
 const handler = require('./handler');
 
-// ===============================
 const messageStore = new Map();
 
-// ===============================
 async function startBot() {
   try {
     const { state, saveCreds } = await useMultiFileAuthState('./session');
@@ -28,83 +24,67 @@ async function startBot() {
 
     const sock = makeWASocket({
       version,
-      browser: [config.botName || 'Bot', 'Chrome', '5.0'],
+      browser: [config.botName || 'Bot', 'Chrome', '1.0.0'],
       auth: state,
-      printQRInTerminal: true, // IMPORTANT: QR fallback enabled
-      logger: pino({ level: 'silent' }),
-      markOnlineOnConnect: true
+      printQRInTerminal: true, // QR fallback ON
+      logger: pino({ level: 'silent' })
     });
 
     // ===============================
-    // 🔐 SMART AUTH (PAIR + QR FALLBACK)
+    // 🔐 SMART LOGIN SYSTEM (FIXED)
     // ===============================
-    const isRegistered = state?.creds?.registered;
-
     const number = config.ownerNumbers?.[0];
 
-    if (!isRegistered) {
-      if (number) {
-        setTimeout(async () => {
-          try {
-            console.log('🔄 Generating Pair Code...');
+    setTimeout(async () => {
+      try {
+        // If number exists → try pair code
+        if (number) {
+          console.log('🔄 Trying Pair Code Login...');
 
-            const code = await sock.requestPairingCode(number);
+          const code = await sock.requestPairingCode(number);
 
-            console.log(`
-🔑 =========================
-   PAIR CODE GENERATED
-=========================
-
+          console.log(`
+🔑 PAIR CODE GENERATED
+========================
 📱 Number: ${number}
 🔐 Code: ${code}
-
-👉 WhatsApp → Linked Devices
-👉 Link with code
-
-=========================
-            `);
-          } catch (err) {
-            console.log('⚠️ Pair failed → QR mode active');
-          }
-        }, 3000);
-      } else {
-        console.log('📱 No owner number → QR mode enabled');
+========================
+          `);
+        } else {
+          console.log('📱 No owner number → QR mode active');
+        }
+      } catch (err) {
+        console.log('⚠️ Pair failed → Use QR code instead');
       }
-    }
+    }, 3000);
 
     // ===============================
-    // 🔗 CONNECTION EVENTS
+    // CONNECTION HANDLER
     // ===============================
-    sock.ev.on('connection.update', async (update) => {
+    sock.ev.on('connection.update', (update) => {
       const { connection, lastDisconnect } = update;
 
       if (connection === 'open') {
-        console.log(`\n✅ ${config.botName} CONNECTED SUCCESSFULLY\n`);
-
-        try {
-          await sock.updateProfileStatus(
-            `🤖 ${config.botName} | 👑 ${config.ownerName || 'Owner'}`
-          );
-        } catch {}
+        console.log(`\n✅ ${config.botName} CONNECTED\n`);
       }
 
       if (connection === 'close') {
         const reason = lastDisconnect?.error?.output?.statusCode;
 
         if (reason === DisconnectReason.loggedOut) {
-          console.log('❌ Session expired. Delete session folder.');
+          console.log('❌ Session expired - delete session folder');
           process.exit(0);
         }
 
         console.log('⚠️ Reconnecting...');
-        setTimeout(startBot, 5000);
+        setTimeout(startBot, 4000);
       }
     });
 
     sock.ev.on('creds.update', saveCreds);
 
     // ===============================
-    // 📩 MESSAGE HANDLER
+    // MESSAGE HANDLER
     // ===============================
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type !== 'notify') return;
@@ -117,7 +97,7 @@ async function startBot() {
           if (chat === 'status@broadcast') continue;
 
           if (msg.key?.id) {
-            messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
+            messageStore.set(msg.key.id, msg);
           }
 
           await handler.handleMessage(sock, msg);
@@ -129,24 +109,24 @@ async function startBot() {
     });
 
     // ===============================
-    // 🗑️ ANTI DELETE SYSTEM
+    // ANTI DELETE (FIXED SAFE)
     // ===============================
     sock.ev.on('messages.update', async (updates) => {
-      for (const update of updates) {
+      for (const u of updates) {
         try {
-          if (update.update?.message === null) {
+          if (u.update?.message === null) {
 
-            const deletedMsg = messageStore.get(update.key.id);
-            if (!deletedMsg) continue;
+            const oldMsg = messageStore.get(u.key.id);
+            if (!oldMsg) continue;
 
-            const ownerJid = (config.ownerNumbers?.[0] || '') + '@s.whatsapp.net';
+            const owner = (config.ownerNumbers?.[0] || '') + '@s.whatsapp.net';
 
-            await sock.sendMessage(ownerJid, {
-              text: `🚨 DELETED MESSAGE\n📍 ${update.key.remoteJid}`
+            await sock.sendMessage(owner, {
+              text: `🚨 Deleted message detected in ${u.key.remoteJid}`
             });
 
-            await sock.sendMessage(ownerJid, {
-              forward: deletedMsg
+            await sock.sendMessage(owner, {
+              forward: oldMsg
             });
           }
         } catch {}
@@ -154,11 +134,10 @@ async function startBot() {
     });
 
   } catch (err) {
-    console.log('❌ Startup error:', err?.message);
+    console.log('❌ Fatal error:', err.message);
     setTimeout(startBot, 5000);
   }
 }
 
-// ===============================
 console.log(`🚀 Starting ${config.botName}...`);
 startBot();
