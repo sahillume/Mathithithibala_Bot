@@ -1,9 +1,10 @@
 /**
- * 🔥 PRO MESSAGE HANDLER - Mathithibala_Bot (SAHIL SYSTEM UPGRADED)
+ * 🔥 PRO MESSAGE HANDLER - Mathithibala_Bot (SAHIL SYSTEM FINAL)
  */
 
 const config = require('./config');
 const { loadCommands } = require('./utils/commandLoader');
+const { getGroupSettings } = require('./database');
 const axios = require('axios');
 
 const cooldowns = new Map();
@@ -18,7 +19,7 @@ const getPrefixes = () => [
 ];
 
 // ===============================
-// OWNER CHECK (SAFE)
+// OWNER CHECK
 // ===============================
 const isOwner = (sender = '') => {
   const number = sender.split('@')[0];
@@ -46,6 +47,13 @@ const handleMessage = async (sock, msg) => {
     const isGroup = from.endsWith('@g.us');
 
     // ===============================
+    // GROUP SETTINGS (ANTI DELETE CONTROL)
+    // ===============================
+    const groupSettings = isGroup
+      ? getGroupSettings(from)
+      : config.defaultGroupSettings;
+
+    // ===============================
     // EXTRACT MESSAGE BODY
     // ===============================
     let body =
@@ -64,12 +72,19 @@ const handleMessage = async (sock, msg) => {
     const owner = isOwner(sender);
 
     // ===============================
-    // 🤖 AI AUTO REPLY (SAFE MODE)
+    // 🤖 AI AUTO REPLY (FIXED)
     // ===============================
-    if (!usedPrefix && !msg.key.fromMe && config.aiMode) {
+    if (!usedPrefix && !msg.key.fromMe && config.ai?.enabled) {
       try {
         const res = await axios.get(
-          `https://api.affiliateplus.xyz/api/chatbot?message=${encodeURIComponent(body)}&botname=${config.botName}&ownername=${config.ownerName}`
+          `https://api.affiliateplus.xyz/api/chatbot`,
+          {
+            params: {
+              message: body,
+              botname: config.botName,
+              ownername: config.ownerName
+            }
+          }
         );
 
         if (res?.data?.message) {
@@ -77,7 +92,7 @@ const handleMessage = async (sock, msg) => {
             text: `🤖 ${res.data.message}`
           }, { quoted: msg });
         }
-      } catch (e) {}
+      } catch {}
     }
 
     if (!usedPrefix) return;
@@ -118,7 +133,23 @@ const handleMessage = async (sock, msg) => {
     }
 
     // ===============================
-    // EXECUTE COMMAND (ANTI CRASH WRAPPER)
+    // ADMIN CHECK (OPTIONAL)
+    // ===============================
+    if (command.adminOnly && isGroup) {
+      const metadata = await sock.groupMetadata(from);
+      const admins = metadata.participants
+        .filter(p => p.admin)
+        .map(p => p.id);
+
+      if (!admins.includes(sender)) {
+        return sock.sendMessage(from, {
+          text: '🛡️ Admins only!'
+        }, { quoted: msg });
+      }
+    }
+
+    // ===============================
+    // EXECUTE COMMAND
     // ===============================
     try {
       await command.execute(sock, msg, args, {
@@ -126,6 +157,7 @@ const handleMessage = async (sock, msg) => {
         sender,
         isGroup,
         isOwner: owner,
+        groupSettings, // 🔥 IMPORTANT (used by antidelete)
         config,
 
         reply: (text) =>
