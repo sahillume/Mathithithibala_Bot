@@ -1,12 +1,8 @@
 /**
- * 👤🔍 Sahil Pro Profile Inspector
+ * 👤🔍 Mathithibala_Bot Profile Inspector (PRO FIXED)
  * Folder: commands/sahilPro.lume/
  * Author: Professor Sahil
- * System: Mathithibala_Bot Safe Intelligence Layer
- *
- * NOTE:
- * This module only reads bot database info.
- * It does NOT track WhatsApp users or private activity.
+ * System: Safe DB Intelligence Layer
  */
 
 const db = require('../../database');
@@ -16,7 +12,7 @@ module.exports = {
   aliases: ['inspect', 'profileview', 'checkuser'],
   category: 'sahilPro',
   description: 'Inspect stored user profile data (safe DB-based)',
-  usage: '.profilestalker <tag/reply>',
+  usage: '.profilestalker <reply/mention>',
 
   async execute(sock, msg, args, extra) {
     try {
@@ -24,65 +20,96 @@ module.exports = {
       const from = msg.key.remoteJid;
 
       // ===============================
-      // 👤 GET TARGET USER
+      // 👤 TARGET DETECTION (FIXED)
       // ===============================
+      const context = msg.message?.extendedTextMessage?.contextInfo;
+
       const target =
-        msg.message?.extendedTextMessage?.contextInfo?.participant ||
-        msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+        context?.participant ||
+        context?.mentionedJid?.[0] ||
+        null;
 
       if (!target) {
         return extra.reply(
 `╭━━『 👤 Profile Inspector 』━━╮
 
-📌 Usage:
-- Reply to a user message
-- OR mention a user
+📌 How to use:
+• Reply to a user message
+• OR mention a user
 
-⚠️ Only bot-stored data is shown
+⚠️ Only bot database data is shown
+🔐 No WhatsApp tracking involved
 
 ╰━━━━━━━━━━━━━━`
         );
       }
 
       // ===============================
-      // 📊 LOAD USER DATA
+      // 📊 LOAD USER DATA (SAFE FIX)
       // ===============================
       let user = db.getUser(target);
 
+      // Ensure object always exists
       if (!user) {
-        return extra.reply(
-`❌ No data found for this user in database.`
-        );
+        user = {
+          messages: 0,
+          commands: 0,
+          level: 1,
+          xp: 0,
+          memory: {},
+          lastSeen: "Unknown"
+        };
       }
 
       // ===============================
-      // 📄 FORMAT PROFILE
+      // 🧠 SAFE VALUES
       // ===============================
-      const text = `
-╭━━『 👤 PROFILE INSPECTOR 』━━╮
+      const messages = user.messages || 0;
+      const commands = user.commands || 0;
+      const level = user.level || 1;
+      const xp = user.xp || 0;
+      const memoryCount = user.memory ? Object.keys(user.memory).length : 0;
+      const lastSeen = user.lastSeen || "Unknown";
 
-🧑 User: ${target}
+      // ===============================
+      // 📄 PROFILE OUTPUT
+      // ===============================
+      const text =
+`╭━━『 👤 PROFILE INSPECTOR 』━━╮
 
-📨 Messages: ${user.messages || 0}
-⚙️ Commands: ${user.commands || 0}
-⭐ Level: ${user.level || 1}
-🔥 XP: ${user.xp || 0}
+🧑 User:
+➜ ${target}
 
-🧠 Memory Keys: ${(user.memory ? Object.keys(user.memory).length : 0)}
+📊 Stats:
+• Messages: ${messages}
+• Commands: ${commands}
+• Level: ${level}
+• XP: ${xp}
 
-⏱ Last Seen (bot-based): ${user.lastSeen || "Unknown"}
+🧠 Memory:
+• Keys Stored: ${memoryCount}
+
+⏱ Last Seen:
+• ${lastSeen}
 
 ╰━━━━━━━━━━━━━━
-🤖 Sahil Pro Safe Inspector
-`;
+🤖 Mathithibala_Bot Safe Inspector`;
 
+      // ===============================
+      // 📩 SEND RESULT
+      // ===============================
       return sock.sendMessage(from, {
         text
       }, { quoted: msg });
 
     } catch (err) {
-      console.log("Profile Inspector Error:", err.message);
-      return extra.reply("❌ Error loading profile.");
+      console.log('❌ Profile Inspector Error:', err.message);
+
+      return extra.reply(
+`❌ Failed to load profile data
+
+⚠️ System error occurred`
+      );
     }
   }
 };
