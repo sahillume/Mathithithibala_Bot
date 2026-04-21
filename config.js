@@ -1,9 +1,9 @@
 module.exports = {
 
-  // 👑 OWNER CONFIG (FIXED SAFE)
+  // 👑 OWNER CONFIG (RESTORED)
   ownerNumbers: process.env.OWNER_NUMBER
     ? process.env.OWNER_NUMBER.split(',').map(n => n.replace(/\D/g, ''))
-    : [], // ❗ EMPTY = QR MODE (IMPORTANT FIX)
+    : ['27835515085'], // ✅ YOUR NUMBER BACK
 
   ownerName: process.env.OWNER_NAME || 'Professor Sahil',
 
@@ -23,8 +23,8 @@ module.exports = {
     fallbackToQR: true
   },
 
-  // 🔗 CHANNEL
-  newsletterJid: process.env.NEWSLETTER_JID || '120363406672648713@newsletter',
+  // 🔗 CHANNEL (FIXED)
+  newsletterJid: '120363406672648713@newsletter',
 
   channel: {
     url: 'https://whatsapp.com/channel/0029VbCIUrC4tRrmjdI9QM1x',
