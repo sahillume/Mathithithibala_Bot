@@ -1,18 +1,28 @@
 module.exports = {
 
-  // 👑 OWNER CONFIG (FIXED CONSISTENCY)
-  ownerNumbers: ['27835515085'], // FIXED (was ownerNumber → breaks handler)
-  ownerName: 'Professor Sahil',
+  // 👑 OWNER CONFIG (PUBLIC EDITABLE)
+  ownerNumbers: process.env.OWNER_NUMBER
+    ? process.env.OWNER_NUMBER.split(',')
+    : ['27835515085'],
+
+  ownerName: process.env.OWNER_NAME || 'Professor Sahil',
 
   // 🤖 BOT CONFIG
-  botName: 'Mathithibala Bot',
+  botName: process.env.BOT_NAME || 'Mathithibala Bot',
   prefix: process.env.PREFIX || '.',
 
   sessionName: 'session',
   sessionID: process.env.SESSION_ID || '',
 
+  // 🔐 PAIR SYSTEM
+  pairing: {
+    enabled: true, // 🔥 allow pair code login
+    autoAskNumber: true // ask number in console
+  },
+
   // 🔗 SYSTEM LINKS
-  newsletterJid: '', // 📢 WhatsApp newsletter ID
+  newsletterJid: process.env.NEWSLETTER_JID || '', // e.g 1203xxx@newsletter
+  newsletterName: "Mathithibala Channel",
   updateZipUrl: '',
 
   // 🎨 STICKER CONFIG
@@ -29,7 +39,7 @@ module.exports = {
   autoReactMode: 'bot',
   autoDownload: false,
 
-  // 🧠 AI SYSTEM (ENHANCED SAFE VERSION)
+  // 🧠 AI SYSTEM
   ai: {
     enabled: true,
     smartFallback: true,
@@ -39,7 +49,7 @@ module.exports = {
     antiLoop: true
   },
 
-  // 🛡️ GROUP DEFAULT SETTINGS (ENHANCED)
+  // 🛡️ GROUP DEFAULT SETTINGS
   defaultGroupSettings: {
     antilink: false,
     antilinkAction: 'delete',
@@ -56,7 +66,7 @@ module.exports = {
     antigroupmentionAction: 'delete',
 
     antiSpam: false,
-    antidelete: false,
+    antidelete: false, // 🔥 IMPORTANT
     nsfw: false,
     detect: false,
     chatbot: false,
@@ -75,13 +85,13 @@ module.exports = {
     remove_bg: ''
   },
 
-  // 💬 SYSTEM MESSAGES (IMPROVED)
+  // 💬 SYSTEM MESSAGES
   messages: {
     wait: '⏳ Processing...',
     success: '✅ Done!',
     error: '❌ Something went wrong!',
 
-    ownerOnly: '👑 Only Professor Sahil can use this.',
+    ownerOnly: '👑 Only owner can use this.',
     adminOnly: '🛡️ Admins only!',
     groupOnly: '👥 Groups only!',
     privateOnly: '💬 Private chat only!',
@@ -102,9 +112,9 @@ module.exports = {
     youtube: ''
   },
 
-  // 🧠 INTERNAL FLAGS (NEW - USED BY CORE)
+  // 🧠 SYSTEM FLAGS
   system: {
-    version: 'PRO-MAX-1.0',
+    version: 'PRO-MAX-2.0',
     logLevel: 'silent',
     antiCrash: true
   }
