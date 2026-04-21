@@ -1,6 +1,8 @@
 process.env.PUPPETEER_SKIP_DOWNLOAD = 'true';
 
 const pino = require('pino');
+const qrcode = require('qrcode-terminal'); // ✅ QR FIX
+
 const {
   default: makeWASocket,
   useMultiFileAuthState,
@@ -22,22 +24,21 @@ async function startBot() {
       version,
       browser: [config.botName || 'Bot', 'Chrome', '1.0.0'],
       auth: state,
-      printQRInTerminal: false, // FIXED (manual QR handling)
+      printQRInTerminal: false, // ✅ we handle QR manually
       logger: pino({ level: 'silent' })
     });
 
     // =========================
-    // SAFE LOGIN SYSTEM
+    // 🔐 SMART LOGIN SYSTEM
     // =========================
     const number = config.ownerNumbers?.[0];
-
     const isRegistered = !!state?.creds?.registered;
 
     if (!isRegistered) {
       setTimeout(async () => {
         try {
           if (number) {
-            console.log('🔄 Trying Pair Code Login...');
+            console.log('🔄 Generating Pair Code...');
 
             const code = await sock.requestPairingCode(number);
 
@@ -47,7 +48,7 @@ async function startBot() {
 📱 ${number}
 🔐 ${code}
 =====================
-            `);
+`);
           } else {
             console.log('📱 No owner number → QR mode active');
           }
@@ -58,10 +59,16 @@ async function startBot() {
     }
 
     // =========================
-    // CONNECTION HANDLER
+    // 🔗 CONNECTION HANDLER (QR FIXED)
     // =========================
     sock.ev.on('connection.update', (update) => {
-      const { connection, lastDisconnect } = update;
+      const { connection, lastDisconnect, qr } = update;
+
+      // ✅ THIS WAS MISSING → NOW QR WILL SHOW
+      if (qr) {
+        console.log('\n📱 SCAN THIS QR CODE:\n');
+        qrcode.generate(qr, { small: true });
+      }
 
       if (connection === 'open') {
         console.log(`\n✅ ${config.botName} CONNECTED\n`);
@@ -71,7 +78,7 @@ async function startBot() {
         const reason = lastDisconnect?.error?.output?.statusCode;
 
         if (reason === DisconnectReason.loggedOut) {
-          console.log('❌ Session expired');
+          console.log('❌ Session expired → delete session folder');
           process.exit(0);
         }
 
@@ -83,7 +90,7 @@ async function startBot() {
     sock.ev.on('creds.update', saveCreds);
 
     // =========================
-    // MESSAGE HANDLER
+    // 📩 MESSAGE HANDLER
     // =========================
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type !== 'notify') return;
@@ -99,7 +106,7 @@ async function startBot() {
 
           await handler.handleMessage(sock, msg);
 
-          // 🔥 MEMORY CLEANUP (PREVENT LEAK)
+          // 🔥 MEMORY CLEANUP
           if (messageStore.size > 500) {
             const firstKey = messageStore.keys().next().value;
             messageStore.delete(firstKey);
@@ -112,7 +119,7 @@ async function startBot() {
     });
 
     // =========================
-    // ANTI DELETE (SAFE)
+    // 🗑️ ANTI DELETE
     // =========================
     sock.ev.on('messages.update', async (updates) => {
       for (const u of updates) {
@@ -122,7 +129,11 @@ async function startBot() {
             const oldMsg = messageStore.get(u.key.id);
             if (!oldMsg) continue;
 
-            const owner = (config.ownerNumbers?.[0] || '') + '@s.whatsapp.net';
+            const ownerNumber = config.ownerNumbers?.[0];
+
+            if (!ownerNumber) return; // ✅ prevent crash if empty
+
+            const owner = ownerNumber + '@s.whatsapp.net';
 
             await sock.sendMessage(owner, {
               text: `🚨 Deleted message in ${u.key.remoteJid}`
