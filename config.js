@@ -18,18 +18,24 @@ module.exports = {
   sessionID: process.env.SESSION_ID || '',
 
   // ===============================
-  // 🔥 PAIRING SYSTEM (FIXED LOGIC SUPPORT)
+  // 🔥 PAIRING SYSTEM
   // ===============================
   pairing: {
-    enabled: true,          // MUST be true for pair code mode
-    autoAskNumber: true,    // ask number in terminal
-    timeout: 60000          // prevents hanging pairing requests
+    enabled: true,
+    autoAskNumber: true,
+    timeout: 60000
   },
 
   // ===============================
-  // 🔗 LINKS / NEWSLETTER
+  // 🔗 NEWSLETTER + CHANNEL (ADDED FIXED)
   // ===============================
-  newsletterJid: process.env.NEWSLETTER_JID || '',
+  newsletterJid: process.env.NEWSLETTER_JID || '120363406672648713@newsletter',
+
+  channel: {
+    url: 'https://whatsapp.com/channel/0029VbCIUrC4tRrmjdI9QM1x',
+    jid: '120363406672648713@newsletter'
+  },
+
   newsletterName: 'Mathithibala Channel',
   updateZipUrl: process.env.UPDATE_ZIP_URL || '',
 
@@ -40,7 +46,7 @@ module.exports = {
   author: 'Professor Sahil',
 
   // ===============================
-  // ⚙️ BOT BEHAVIOR (STABLE DEFAULTS)
+  // ⚙️ BOT BEHAVIOR
   // ===============================
   selfMode: false,
   autoRead: true,
@@ -64,7 +70,7 @@ module.exports = {
   },
 
   // ===============================
-  // 🛡️ GROUP SETTINGS (FIXED STRUCTURE)
+  // 🛡️ GROUP SETTINGS
   // ===============================
   defaultGroupSettings: {
     antilink: false,
@@ -82,7 +88,7 @@ module.exports = {
     antigroupmentionAction: 'delete',
 
     antiSpam: false,
-    antidelete: true,   // 🔥 IMPORTANT (enable by default for safety)
+    antidelete: true,
 
     nsfw: false,
     detect: false,
@@ -133,7 +139,7 @@ module.exports = {
 
   // ===============================
   // 🌐 SOCIAL
-  // ===============================
+  ===============================
   social: {
     github: 'https://github.com/sahillume/Mathithithibala_Bot',
     instagram: '',
@@ -142,7 +148,7 @@ module.exports = {
 
   // ===============================
   // 🧠 SYSTEM FLAGS
-  // ===============================
+  ===============================
   system: {
     version: 'PRO-MAX-STABLE',
     logLevel: 'silent',
