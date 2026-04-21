@@ -1,5 +1,5 @@
 /**
- * WhatsApp MD Bot - MAIN CORE (PRO MAX FINAL)
+ * WhatsApp MD Bot - MAIN CORE (PRO MAX FINAL FIXED)
  * BOT: Mathithibala_Bot
  * OWNER: Professor Sahil
  */
@@ -27,33 +27,25 @@ const config = require('./config');
 const handler = require('./handler');
 
 // ===============================
-// 🔐 PAIR INPUT SYSTEM
-// ===============================
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
-const askNumber = () => {
-  return new Promise((resolve) => {
-    rl.question('📱 Enter WhatsApp number (e.g 2783xxxxxxx): ', resolve);
-  });
-};
-
-// ===============================
 // 🧠 MEMORY (ANTI DELETE)
 // ===============================
 const messageStore = new Map();
 
 // ===============================
-// 🧹 CLEAN LOGS
+// 🔐 ASK NUMBER (PAIR CODE)
 // ===============================
-const originalLog = console.log;
-console.log = (...args) => {
-  const msg = args.join(' ').toLowerCase();
-  if (!msg.includes('prekey') && !msg.includes('session')) {
-    originalLog(...args);
-  }
+const askNumber = () => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise((resolve) => {
+    rl.question('📱 Enter WhatsApp number (e.g 27835515085): ', (num) => {
+      rl.close();
+      resolve(num);
+    });
+  });
 };
 
 // ===============================
@@ -61,40 +53,33 @@ console.log = (...args) => {
 // ===============================
 async function startBot() {
   try {
-    const usePairingCode = true; // 🔥 enable pairing
-    let phoneNumber;
-
-    if (usePairingCode) {
-      phoneNumber = await askNumber();
-    }
-
     const { state, saveCreds } = await useMultiFileAuthState('./session');
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
       version,
-      printQRInTerminal: false,
       browser: [config.botName, 'Chrome', '5.0'],
       auth: state,
-      markOnlineOnConnect: true,
+      printQRInTerminal: false,
       logger: pino({ level: 'silent' }),
-      syncFullHistory: false
+      markOnlineOnConnect: true
     });
 
     // ===============================
     // 🔐 PAIR CODE SYSTEM
     // ===============================
-    if (usePairingCode && !sock.authState.creds.registered) {
-      setTimeout(async () => {
-        try {
-          const code = await sock.requestPairingCode(phoneNumber);
+    if (!state.creds.registered) {
+      const number = await askNumber();
 
-          console.log(`
+      try {
+        const code = await sock.requestPairingCode(number);
+
+        console.log(`
 🔑 =========================
    PAIR CODE GENERATED
 =========================
 
-📱 Number: ${phoneNumber}
+📱 Number: ${number}
 🔐 Code: ${code}
 
 👉 WhatsApp > Linked Devices
@@ -102,10 +87,9 @@ async function startBot() {
 
 =========================
 `);
-        } catch (err) {
-          console.log('❌ Pairing error:', err.message);
-        }
-      }, 3000);
+      } catch (err) {
+        console.log('❌ Pairing error:', err.message);
+      }
     }
 
     // ===============================
@@ -114,14 +98,13 @@ async function startBot() {
     sock.ev.on('connection.update', async (update) => {
       const { connection, qr, lastDisconnect } = update;
 
-      // 📱 QR fallback
-      if (qr && !usePairingCode) {
-        console.clear();
-        console.log(`📱 SCAN QR CODE:\n`);
+      // QR fallback
+      if (qr && state.creds.registered) {
+        console.log('📱 Scan QR if needed:');
         qrcode.generate(qr, { small: true });
       }
 
-      // ✅ CONNECTED
+      // CONNECTED
       if (connection === 'open') {
         console.clear();
         console.log(`
@@ -130,13 +113,14 @@ async function startBot() {
 ⚡ Pro System Active
 `);
 
+        // Update bio
         try {
           await sock.updateProfileStatus(
             `🤖 ${config.botName} | 👑 ${config.ownerName}`
           );
-        } catch (e) {}
+        } catch {}
 
-        // 📢 Newsletter
+        // Newsletter auto send
         try {
           if (config.newsletterJid) {
             await sock.sendMessage(config.newsletterJid, {
@@ -147,7 +131,7 @@ async function startBot() {
 ⚡ Status: Active
 🕒 ${new Date().toLocaleString()}
 
-🔥 Sahil Pro System`
+🔥 Powered by Sahil Pro System`
             });
           }
         } catch (e) {
@@ -155,7 +139,7 @@ async function startBot() {
         }
       }
 
-      // ❌ DISCONNECTED
+      // DISCONNECTED
       if (connection === 'close') {
         const reason = lastDisconnect?.error?.output?.statusCode;
 
@@ -164,7 +148,7 @@ async function startBot() {
           process.exit(0);
         }
 
-        console.log('⚠️ Reconnecting in 5 seconds...');
+        console.log('⚠️ Reconnecting...');
         setTimeout(startBot, 5000);
       }
     });
@@ -184,12 +168,9 @@ async function startBot() {
           const chat = msg.key.remoteJid;
           if (chat === 'status@broadcast') continue;
 
-          // 🧠 STORE MESSAGE (SAFE COPY)
+          // Save message
           if (msg.key?.id) {
-            messageStore.set(
-              msg.key.id,
-              JSON.parse(JSON.stringify(msg))
-            );
+            messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
           }
 
           await handler.handleMessage(sock, msg);
@@ -201,7 +182,7 @@ async function startBot() {
     });
 
     // ===============================
-    // 🗑️ ANTI DELETE (FIXED)
+    // 🗑️ ANTI DELETE
     // ===============================
     sock.ev.on('messages.update', async (updates) => {
       for (const update of updates) {
@@ -214,16 +195,14 @@ async function startBot() {
             const ownerJid = config.ownerNumbers[0] + '@s.whatsapp.net';
 
             await sock.sendMessage(ownerJid, {
-              text:
-`🚨 *DELETED MESSAGE DETECTED*
-📍 Chat: ${update.key.remoteJid}`
+              text: `🚨 DELETED MESSAGE DETECTED\n📍 Chat: ${update.key.remoteJid}`
             });
 
             await sock.sendMessage(ownerJid, {
               forward: deletedMsg
             });
           }
-        } catch (e) {}
+        } catch {}
       }
     });
 
@@ -246,16 +225,14 @@ async function startBot() {
           const ownerJid = config.ownerNumbers[0] + '@s.whatsapp.net';
 
           await sock.sendMessage(ownerJid, {
-            text:
-`👁️ *VIEW-ONCE DETECTED*
-📍 From: ${msg.key.remoteJid}`
+            text: `👁️ VIEW-ONCE DETECTED\n📍 From: ${msg.key.remoteJid}`
           });
 
           await sock.sendMessage(ownerJid, {
             forward: msg
           });
 
-        } catch (e) {}
+        } catch {}
       }
     });
 
