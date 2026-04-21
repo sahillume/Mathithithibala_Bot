@@ -1,8 +1,7 @@
 /**
- * 📢 Sahil Pro Post To Status System
+ * 📢 Mathithibala_Bot Status Engine (PRO MAX)
  * Folder: commands/sahilPro.lume/
  * Author: Professor Sahil
- * System: Mathithibala_Bot Status Engine
  */
 
 module.exports = {
@@ -14,11 +13,10 @@ module.exports = {
 
   async execute(sock, msg, args, extra) {
     try {
-      const from = msg.key.remoteJid;
-      const text = args.join(' ');
+      const text = args.join(' ').trim();
 
       // ===============================
-      // 📌 NO INPUT
+      // 📌 NO INPUT HANDLER
       // ===============================
       if (!text) {
         return extra.reply(
@@ -27,33 +25,54 @@ module.exports = {
 📌 Usage:
 .posttostatus Hello world
 
-⚡ Sends message to WhatsApp status
+📷 You can also reply to media + use command
 
-👑 Sahil Pro System
+🤖 Mathithibala_Bot Status Engine
 
 ╰━━━━━━━━━━━━━━`
         );
       }
 
       // ===============================
-      // 📢 POST STATUS
+      // 📢 STATUS CONTENT
+      // ===============================
+      const statusText =
+`📢 ${text}
+
+🤖 Mathithibala_Bot
+👑 Powered by Professor Sahil`;
+
+      // ===============================
+      // 📤 SEND TEXT STATUS (SAFE)
       // ===============================
       await sock.sendMessage('status@broadcast', {
-        text: `📢 ${text}\n\n🤖 Posted by Mathithibala_Bot`
+        text: statusText
       });
 
+      // ===============================
+      // ✅ SUCCESS MESSAGE
+      // ===============================
       return extra.reply(
-`📢 *Status Posted Successfully*
+`╭━━『 ✅ STATUS POSTED 』━━╮
 
-📝 Content:
+📝 Message:
 ${text}
 
-⚡ Sahil Pro Engine`
+📡 Sent to WhatsApp Status
+
+🤖 Mathithibala_Bot Engine
+
+╰━━━━━━━━━━━━━━`
       );
 
     } catch (err) {
-      console.log("PostToStatus Error:", err.message);
-      return extra.reply("❌ Failed to post status.");
+      console.log('[STATUS ERROR]', err);
+
+      return extra.reply(
+`❌ Failed to post status
+
+⚠️ Reason: ${err.message || 'Unknown error'}`
+      );
     }
   }
 };
