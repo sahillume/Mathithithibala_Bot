@@ -1,7 +1,3 @@
-/**
- * 🔥 PRO MESSAGE HANDLER - Mathithibala_Bot (SAHIL SYSTEM FINAL)
- */
-
 const config = require('./config');
 const { loadCommands } = require('./utils/commandLoader');
 const { getGroupSettings } = require('./database');
@@ -9,6 +5,9 @@ const axios = require('axios');
 
 const cooldowns = new Map();
 const commands = loadCommands();
+
+// 🔥 BOT TAG
+const BOT_NAME = config.botName || 'Mathithibala_Bot';
 
 // ===============================
 // PREFIX SYSTEM
@@ -19,7 +18,7 @@ const getPrefixes = () => [
 ];
 
 // ===============================
-// OWNER CHECK
+// OWNER CHECK (FIXED SAFE VERSION)
 // ===============================
 const isOwner = (sender = '') => {
   const number = sender.split('@')[0];
@@ -27,14 +26,18 @@ const isOwner = (sender = '') => {
 };
 
 // ===============================
-// MAIN HANDLER
+// MAIN HANDLER (PRO MAX)
 // ===============================
 const handleMessage = async (sock, msg) => {
   try {
     if (!msg?.message) return;
 
     const from = msg.key.remoteJid;
+    if (!from) return;
 
+    // ===============================
+    // 👤 SENDER FIX (GROUP SAFE)
+    // ===============================
     const sender =
       msg.key.fromMe
         ? sock.user?.id?.split(':')[0] + '@s.whatsapp.net'
@@ -47,23 +50,25 @@ const handleMessage = async (sock, msg) => {
     const isGroup = from.endsWith('@g.us');
 
     // ===============================
-    // GROUP SETTINGS (ANTI DELETE CONTROL)
+    // GROUP SETTINGS
     // ===============================
     const groupSettings = isGroup
       ? getGroupSettings(from)
       : config.defaultGroupSettings;
 
     // ===============================
-    // EXTRACT MESSAGE BODY
+    // MESSAGE BODY EXTRACTION (IMPROVED)
     // ===============================
     let body =
       msg.message?.conversation ||
       msg.message?.extendedTextMessage?.text ||
       msg.message?.imageMessage?.caption ||
       msg.message?.videoMessage?.caption ||
+      msg.message?.buttonsResponseMessage?.selectedButtonId ||
+      msg.message?.listResponseMessage?.singleSelectReply?.selectedRowId ||
       '';
 
-    body = (body || '').trim();
+    body = body.toString().trim();
     if (!body) return;
 
     const prefixes = getPrefixes();
@@ -72,44 +77,50 @@ const handleMessage = async (sock, msg) => {
     const owner = isOwner(sender);
 
     // ===============================
-    // 🤖 AI AUTO REPLY (FIXED)
+    // 🤖 AI AUTO REPLY (CONTROLLED)
     // ===============================
     if (!usedPrefix && !msg.key.fromMe && config.ai?.enabled) {
       try {
         const res = await axios.get(
-          `https://api.affiliateplus.xyz/api/chatbot`,
+          'https://api.affiliateplus.xyz/api/chatbot',
           {
             params: {
               message: body,
-              botname: config.botName,
+              botname: BOT_NAME,
               ownername: config.ownerName
-            }
+            },
+            timeout: 8000
           }
         );
 
-        if (res?.data?.message) {
+        const reply = res?.data?.message;
+
+        if (reply) {
           return sock.sendMessage(from, {
-            text: `🤖 ${res.data.message}`
+            text: `🤖 ${reply}`
           }, { quoted: msg });
         }
-      } catch {}
+
+      } catch (e) {
+        // silent fail (prevents spam crashes)
+      }
     }
 
     if (!usedPrefix) return;
 
     // ===============================
-    // COMMAND PARSING
+    // COMMAND PARSING (SAFE)
     // ===============================
-    const args = body.slice(usedPrefix.length).trim().split(/ +/);
+    const args = body.slice(usedPrefix.length).trim().split(/\s+/);
     const commandName = (args.shift() || '').toLowerCase();
 
     const command = commands.get(commandName);
     if (!command) return;
 
     // ===============================
-    // COOLDOWN SYSTEM
+    // COOLDOWN SYSTEM (IMPROVED)
     // ===============================
-    const key = sender + commandName;
+    const key = `${sender}_${commandName}`;
     const now = Date.now();
     const last = cooldowns.get(key) || 0;
 
@@ -124,7 +135,7 @@ const handleMessage = async (sock, msg) => {
     cooldowns.set(key, now);
 
     // ===============================
-    // OWNER PROTECTION
+    // OWNER CHECK
     // ===============================
     if (command.ownerOnly && !owner) {
       return sock.sendMessage(from, {
@@ -133,23 +144,29 @@ const handleMessage = async (sock, msg) => {
     }
 
     // ===============================
-    // ADMIN CHECK (OPTIONAL)
+    // ADMIN CHECK (FIXED SAFE)
     // ===============================
     if (command.adminOnly && isGroup) {
-      const metadata = await sock.groupMetadata(from);
-      const admins = metadata.participants
-        .filter(p => p.admin)
-        .map(p => p.id);
+      try {
+        const metadata = await sock.groupMetadata(from);
 
-      if (!admins.includes(sender)) {
-        return sock.sendMessage(from, {
-          text: '🛡️ Admins only!'
-        }, { quoted: msg });
+        const admins = metadata.participants
+          .filter(p => p.admin)
+          .map(p => p.id);
+
+        if (!admins.includes(sender)) {
+          return sock.sendMessage(from, {
+            text: '🛡️ Admins only!'
+          }, { quoted: msg });
+        }
+
+      } catch (e) {
+        console.log(`[${BOT_NAME}] Admin check failed`);
       }
     }
 
     // ===============================
-    // EXECUTE COMMAND
+    // EXECUTE COMMAND (CRASH PROTECTED)
     // ===============================
     try {
       await command.execute(sock, msg, args, {
@@ -157,7 +174,7 @@ const handleMessage = async (sock, msg) => {
         sender,
         isGroup,
         isOwner: owner,
-        groupSettings, // 🔥 IMPORTANT (used by antidelete)
+        groupSettings,
         config,
 
         reply: (text) =>
@@ -165,11 +182,11 @@ const handleMessage = async (sock, msg) => {
       });
 
     } catch (cmdErr) {
-      console.log(`❌ Command Error (${commandName}):`, cmdErr.message);
+      console.log(`❌ [${BOT_NAME}] Command Error:`, cmdErr.message);
     }
 
   } catch (err) {
-    console.log('❌ Handler Crash:', err.message);
+    console.log(`❌ [${BOT_NAME}] Handler Crash:`, err.message);
   }
 };
 
