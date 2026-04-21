@@ -1,6 +1,6 @@
 /**
- * 💾 PRO JSON DATABASE SYSTEM - Mathithibala_Bot
- * Enhanced by Sahil System
+ * 💾 PRO JSON DATABASE SYSTEM - FIXED STABLE VERSION
+ * Mathithibala_Bot | Sahil System
  */
 
 const fs = require('fs');
@@ -20,7 +20,7 @@ const FILES = {
 };
 
 // ===============================
-// 🧠 IN-MEMORY CACHE (FAST ACCESS)
+// 🧠 CACHE
 // ===============================
 const cache = {
   groups: {},
@@ -30,14 +30,14 @@ const cache = {
 };
 
 // ===============================
-// 📁 INIT DATABASE FOLDER
+// 📁 INIT FOLDER
 // ===============================
 if (!fs.existsSync(DB_PATH)) {
   fs.mkdirSync(DB_PATH, { recursive: true });
 }
 
 // ===============================
-// 🧾 SAFE INIT FILE
+// 🛠️ SAFE FILE INIT
 // ===============================
 const initFile = (file, defaultData) => {
   try {
@@ -56,17 +56,34 @@ initFile(FILES.warnings, {});
 initFile(FILES.mods, { moderators: [] });
 
 // ===============================
-// 📥 SAFE READ
+// 📥 SAFE READ (AUTO FIX CORRUPT FILES)
 // ===============================
-const readDB = (file) => {
+const readDB = (file, fallback = {}) => {
   try {
-    if (!fs.existsSync(file)) return {};
+    if (!fs.existsSync(file)) return fallback;
 
-    const data = fs.readFileSync(file, 'utf-8');
-    return JSON.parse(data || '{}');
+    const raw = fs.readFileSync(file, 'utf-8').trim();
+
+    // ⚠️ EMPTY FILE FIX
+    if (!raw) {
+      fs.writeFileSync(file, JSON.stringify(fallback, null, 2));
+      return fallback;
+    }
+
+    return JSON.parse(raw);
+
   } catch (e) {
-    console.log('DB Read Error:', e.message);
-    return {};
+    console.log(`⚠️ DB Corrupted → Resetting: ${path.basename(file)}`);
+
+    try {
+      // backup corrupted file
+      fs.writeFileSync(file + '.backup', fs.readFileSync(file));
+
+      // reset file
+      fs.writeFileSync(file, JSON.stringify(fallback, null, 2));
+    } catch {}
+
+    return fallback;
   }
 };
 
@@ -86,13 +103,13 @@ const writeDB = (file, data) => {
 };
 
 // ===============================
-// 🔄 LOAD CACHE ON START
+// 🔄 LOAD CACHE
 // ===============================
 const loadAll = () => {
-  cache.groups = readDB(FILES.groups);
-  cache.users = readDB(FILES.users);
-  cache.warnings = readDB(FILES.warnings);
-  cache.mods = readDB(FILES.mods);
+  cache.groups = readDB(FILES.groups, {});
+  cache.users = readDB(FILES.users, {});
+  cache.warnings = readDB(FILES.warnings, {});
+  cache.mods = readDB(FILES.mods, { moderators: [] });
 };
 
 loadAll();
@@ -102,7 +119,7 @@ loadAll();
 // ===============================
 const getGroupSettings = (gid) => {
   if (!cache.groups[gid]) {
-    cache.groups[gid] = config.defaultGroupSettings || {};
+    cache.groups[gid] = { ...config.defaultGroupSettings };
     writeDB(FILES.groups, cache.groups);
   }
   return cache.groups[gid];
@@ -141,7 +158,7 @@ const updateUser = (uid, data) => {
 };
 
 // ===============================
-// ⚠️ WARNINGS SYSTEM
+// ⚠️ WARNINGS
 // ===============================
 const getWarnings = (gid, uid) => {
   const key = `${gid}_${uid}`;
@@ -171,7 +188,7 @@ const clearWarnings = (gid, uid) => {
 };
 
 // ===============================
-// 👑 MOD SYSTEM
+// 👑 MODS
 // ===============================
 const getModerators = () => cache.mods.moderators || [];
 
@@ -194,7 +211,7 @@ const isModerator = (uid) => {
 };
 
 // ===============================
-// 📦 EXPORTS
+// 📦 EXPORT
 // ===============================
 module.exports = {
   getGroupSettings,
@@ -212,6 +229,5 @@ module.exports = {
   removeModerator,
   isModerator,
 
-  // optional debug
   _cache: cache
 };
