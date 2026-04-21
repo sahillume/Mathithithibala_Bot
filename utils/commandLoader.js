@@ -6,12 +6,17 @@ function loadCommands() {
 
   const commandsPath = path.join(__dirname, '../commands');
 
-  // 🧠 SAFETY: ensure folder exists
+  // ===============================
+  // 🧠 CHECK FOLDER
+  // ===============================
   if (!fs.existsSync(commandsPath)) {
     console.log('❌ Commands folder not found!');
     return commands;
   }
 
+  // ===============================
+  // 🔁 READ DIRECTORY RECURSIVELY
+  // ===============================
   function readDir(dir) {
     const files = fs.readdirSync(dir);
 
@@ -21,35 +26,40 @@ function loadCommands() {
       try {
         const stat = fs.lstatSync(fullPath);
 
+        // 📁 If folder → scan inside
         if (stat.isDirectory()) {
           readDir(fullPath);
-        } 
-        else if (file.endsWith('.js')) {
-
-          // 🧠 CLEAN CACHE (important for updates)
-          delete require.cache[require.resolve(fullPath)];
-
-          const command = require(fullPath);
-
-          if (!command) return;
-
-          // ===============================
-          // 📦 REGISTER MAIN COMMAND
-          // ===============================
-          if (command.name) {
-            commands.set(command.name.toLowerCase(), command);
-          }
-
-          // ===============================
-          // 🔁 REGISTER ALIASES
-          // ===============================
-          if (Array.isArray(command.aliases)) {
-            for (const alias of command.aliases) {
-              commands.set(alias.toLowerCase(), command);
-            }
-          }
-
+          continue;
         }
+
+        // 📄 Only .js files
+        if (!file.endsWith('.js')) continue;
+
+        // 🧠 CLEAR CACHE (HOT RELOAD SAFE)
+        delete require.cache[require.resolve(fullPath)];
+
+        const command = require(fullPath);
+
+        // ❌ Skip invalid commands (DO NOT BREAK LOOP)
+        if (!command || !command.name) {
+          console.log(`⚠️ Skipped invalid command: ${file}`);
+          continue;
+        }
+
+        // ===============================
+        // 📦 REGISTER MAIN COMMAND
+        // ===============================
+        commands.set(command.name.toLowerCase(), command);
+
+        // ===============================
+        // 🔁 REGISTER ALIASES
+        // ===============================
+        if (Array.isArray(command.aliases)) {
+          for (const alias of command.aliases) {
+            commands.set(alias.toLowerCase(), command);
+          }
+        }
+
       } catch (e) {
         console.log(`❌ Failed loading command: ${file}`);
         console.log(`   ↳ ${e.message}`);
