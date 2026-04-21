@@ -1,5 +1,5 @@
 /**
- * Menu Command - FULL PRO VERSION (CHANNEL ADDED)
+ * Menu Command - FULL PRO VERSION (CHANNEL IMPROVED)
  * Mathithibala_Bot Pro | Professor Sahil System
  */
 
@@ -30,7 +30,8 @@ module.exports = {
       });
 
       const ownerName = config.ownerName || 'Professor Sahil';
-      const channel = config.newsletterJid || 'Not Set';
+      const channelId = config.newsletterJid || 'Not Set';
+      const channelName = config.botName || 'Mathithibala Updates';
 
       let menuText = `╭━━『 *${config.botName}* 』━━╮\n\n`;
       menuText += `👋 Hello @${extra.sender.split('@')[0]}\n\n`;
@@ -39,12 +40,14 @@ module.exports = {
       menuText += `👑 Owner: ${ownerName}\n\n`;
 
       // ===============================
-      // 📢 CHANNEL SECTION (NEW 🔥)
+      // 📢 CHANNEL SECTION (FIXED 🔥)
       // ===============================
       menuText += `┏━━━━━━━━━━━━━━━━━\n`;
       menuText += `┃ 📢 OFFICIAL CHANNEL\n`;
       menuText += `┗━━━━━━━━━━━━━━━━━\n`;
-      menuText += `│ ➜ ${channel}\n\n`;
+      menuText += `│ 🏷️ Name: ${channelName}\n`;
+      menuText += `│ 🔗 Channel ID: ${channelId}\n`;
+      menuText += `│ 🚀 Follow for bot updates\n\n`;
 
       // ===============================
       // FUNCTION TO PRINT CATEGORY
@@ -83,7 +86,7 @@ module.exports = {
       );
 
       // ===============================
-      // 🛡️ ADMIN COMMANDS (FIXED)
+      // 🛡️ ADMIN COMMANDS
       // ===============================
       menuText += printCategory("ADMIN COMMANDS", "🛡️", categories.admin);
 
@@ -102,11 +105,20 @@ module.exports = {
       menuText += `🚀 Mathithibala Pro System Active`;
 
       // ===============================
-      // SEND MENU
+      // SEND MENU (WITH CHANNEL PREVIEW 🔥)
       // ===============================
       await sock.sendMessage(extra.from, {
         text: menuText,
-        mentions: [extra.sender]
+        mentions: [extra.sender],
+        contextInfo: {
+          forwardingScore: 1,
+          isForwarded: true,
+          forwardedNewsletterMessageInfo: {
+            newsletterJid: channelId,
+            newsletterName: channelName,
+            serverMessageId: -1
+          }
+        }
       }, { quoted: msg });
 
     } catch (error) {
