@@ -15,6 +15,9 @@ const handler = require('./handler');
 
 const messageStore = new Map();
 
+// 🔥 BOT TAG
+const BOT_NAME = config.botName || 'Mathithibala_Bot';
+
 async function startBot() {
   try {
     const { state, saveCreds } = await useMultiFileAuthState('./session');
@@ -22,7 +25,7 @@ async function startBot() {
 
     const sock = makeWASocket({
       version,
-      browser: [config.botName || 'Bot', 'Chrome', '1.0.0'],
+      browser: [BOT_NAME, 'Chrome', '1.0.0'],
       auth: state,
       printQRInTerminal: false,
       logger: pino({ level: 'silent' })
@@ -31,17 +34,17 @@ async function startBot() {
     const number = config.ownerNumbers?.[0];
 
     // =========================
-    // 🔗 CONNECTION HANDLER (FIXED)
+    // 🔗 CONNECTION HANDLER (PRO FIXED)
     // =========================
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
-      // ✅ SHOW QR
+      // 📱 QR DISPLAY
       if (qr) {
         console.log('\n📱 SCAN THIS QR CODE:\n');
         qrcode.generate(qr, { small: true });
 
-        // ✅ GENERATE PAIR CODE ONLY HERE (NO LOOP)
+        // 🔑 PAIR CODE (SAFE FIX - NO LOOP)
         if (number) {
           try {
             console.log('🔄 Generating Pair Code...');
@@ -54,42 +57,42 @@ async function startBot() {
 🔐 ${code}
 =====================
 `);
-          } catch {
-            console.log('⚠️ Pair code failed, use QR');
+          } catch (e) {
+            console.log('⚠️ Pairing failed, use QR instead');
           }
         }
       }
 
       // ✅ CONNECTED
       if (connection === 'open') {
-        console.log(`\n✅ ${config.botName} CONNECTED\n`);
+        console.log(`\n✅ ${BOT_NAME} CONNECTED SUCCESSFULLY\n`);
       }
 
-      // ✅ RECONNECT FIX
+      // 🔁 RECONNECT SYSTEM (STABLE)
       if (connection === 'close') {
-        const reason = lastDisconnect?.error?.output?.statusCode;
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
 
-        if (reason === DisconnectReason.loggedOut) {
-          console.log('❌ Session expired → DELETE session folder manually');
-          return; // ❗ DON'T crash loop
+        if (statusCode === DisconnectReason.loggedOut) {
+          console.log('❌ Session expired. Delete /session and restart.');
+          return;
         }
 
-        console.log('⚠️ Reconnecting...');
-        setTimeout(startBot, 4000);
+        console.log('⚠️ Connection lost. Reconnecting...');
+        setTimeout(startBot, 5000);
       }
     });
 
     sock.ev.on('creds.update', saveCreds);
 
     // =========================
-    // 📩 MESSAGE HANDLER
+    // 📩 MESSAGE HANDLER (STABLE)
     // =========================
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type !== 'notify') return;
 
       for (const msg of messages) {
         try {
-          if (!msg.message) continue;
+          if (!msg?.message) continue;
 
           const chat = msg.key.remoteJid;
           if (!chat || chat === 'status@broadcast') continue;
@@ -98,20 +101,20 @@ async function startBot() {
 
           await handler.handleMessage(sock, msg);
 
-          // 🔥 MEMORY CLEANUP
+          // 🧹 MEMORY CLEANUP (PREVENT LEAKS)
           if (messageStore.size > 500) {
             const firstKey = messageStore.keys().next().value;
             messageStore.delete(firstKey);
           }
 
         } catch (err) {
-          console.log('Handler Error:', err?.message);
+          console.log(`[${BOT_NAME}] Handler Error:`, err?.message);
         }
       }
     });
 
     // =========================
-    // 🗑️ ANTI DELETE
+    // 🗑️ ANTI DELETE (SAFE VERSION)
     // =========================
     sock.ev.on('messages.update', async (updates) => {
       for (const u of updates) {
@@ -127,22 +130,26 @@ async function startBot() {
             const owner = ownerNumber + '@s.whatsapp.net';
 
             await sock.sendMessage(owner, {
-              text: `🚨 Deleted message in ${u.key.remoteJid}`
+              text: `🚨 Deleted message detected in ${u.key.remoteJid}`
             });
 
             await sock.sendMessage(owner, {
               forward: oldMsg
             });
           }
-        } catch {}
+        } catch (e) {
+          console.log(`[${BOT_NAME}] Anti-delete error`);
+        }
       }
     });
 
   } catch (err) {
-    console.log('❌ Fatal error:', err?.message);
-    setTimeout(startBot, 5000);
+    console.log(`❌ Fatal error:`, err?.message);
+
+    // 🔁 AUTO RECOVERY
+    setTimeout(startBot, 7000);
   }
 }
 
-console.log(`🚀 Starting ${config.botName}...`);
+console.log(`🚀 Starting ${BOT_NAME}...`);
 startBot();
