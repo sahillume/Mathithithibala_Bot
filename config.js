@@ -1,6 +1,6 @@
 module.exports = {
 
-  // 👑 OWNER CONFIG (SAFE + MULTI OWNER SUPPORT)
+  // 👑 OWNER CONFIG
   ownerNumbers: process.env.OWNER_NUMBER
     ? process.env.OWNER_NUMBER.split(',')
     : ['27835515085'],
@@ -11,24 +11,18 @@ module.exports = {
   botName: process.env.BOT_NAME || 'Mathithibala Bot',
   prefix: process.env.PREFIX || '.',
 
-  // ===============================
   // 🔐 SESSION / AUTH SYSTEM
-  // ===============================
   sessionName: 'session',
   sessionID: process.env.SESSION_ID || '',
 
-  // ===============================
   // 🔥 PAIRING SYSTEM
-  // ===============================
   pairing: {
     enabled: true,
     autoAskNumber: true,
     timeout: 60000
   },
 
-  // ===============================
-  // 🔗 NEWSLETTER + CHANNEL (ADDED FIXED)
-  // ===============================
+  // 🔗 NEWSLETTER + CHANNEL
   newsletterJid: process.env.NEWSLETTER_JID || '120363406672648713@newsletter',
 
   channel: {
@@ -39,15 +33,11 @@ module.exports = {
   newsletterName: 'Mathithibala Channel',
   updateZipUrl: process.env.UPDATE_ZIP_URL || '',
 
-  // ===============================
   // 🎨 STICKERS
-  // ===============================
   packname: 'Mathithibala Bot',
   author: 'Professor Sahil',
 
-  // ===============================
   // ⚙️ BOT BEHAVIOR
-  // ===============================
   selfMode: false,
   autoRead: true,
   autoTyping: true,
@@ -57,9 +47,7 @@ module.exports = {
   autoReactMode: 'bot',
   autoDownload: false,
 
-  // ===============================
   // 🧠 AI SYSTEM
-  // ===============================
   ai: {
     enabled: true,
     smartFallback: true,
@@ -69,9 +57,7 @@ module.exports = {
     antiLoop: true
   },
 
-  // ===============================
   // 🛡️ GROUP SETTINGS
-  // ===============================
   defaultGroupSettings: {
     antilink: false,
     antilinkAction: 'delete',
@@ -102,18 +88,14 @@ module.exports = {
     goodbyeMessage: '👋 Goodbye @user!'
   },
 
-  // ===============================
   // 🔑 API KEYS
-  // ===============================
   apiKeys: {
     openai: process.env.OPENAI_KEY || '',
     deepai: '',
     remove_bg: ''
   },
 
-  // ===============================
   // 💬 SYSTEM MESSAGES
-  // ===============================
   messages: {
     wait: '⏳ Processing...',
     success: '✅ Done!',
@@ -127,28 +109,20 @@ module.exports = {
     invalidCommand: '❓ Unknown command. Try .menu'
   },
 
-  // ===============================
   // 🌍 TIMEZONE
-  // ===============================
   timezone: 'Africa/Johannesburg',
 
-  // ===============================
   // ⚠️ LIMITS
-  // ===============================
   maxWarnings: 3,
 
-  // ===============================
   // 🌐 SOCIAL
-  ===============================
   social: {
     github: 'https://github.com/sahillume/Mathithithibala_Bot',
     instagram: '',
     youtube: 'https://youtube.com/@professorsahil-m7q?si=KzV352H1SYHZHWKt'
   },
 
-  // ===============================
   // 🧠 SYSTEM FLAGS
-  ===============================
   system: {
     version: 'PRO-MAX-STABLE',
     logLevel: 'silent',
