@@ -58,160 +58,24 @@ You can run the bot on:
 * 💻 Local Machine
 * ☁️ VPS (Ubuntu/Linux)
 * 🚀 Hosting (Render / Railway / Heroku)
-* 🧩 Bot Panel System
+* 🧩 Bot Panel System (KataBump Recommended)
+
+🔗 Katabump Hosting:
+https://katabump.com/en/
 
 ---
 
-## 🔐 Pair Code Login (No QR Needed)
+## ⚙️ Katabump Setup Guide
 
-This bot supports **Pair Code Login System**:
+To deploy on Katabump:
 
-```bash
-node pair.js
-```
-
-✔ Enter your number
-✔ Receive pairing code
-✔ Connect instantly
-
----
-
-## 📁 Project Structure
-
-```bash
-commands/        # All commands
-utils/           # Helpers & APIs
-handler.js       # Command handler
-index.js         # Main bot core
-config.js        # Bot settings
-database.js      # JSON database
-bot-panel/       # Web panel system
-pair.js          # Pair code system
-```
-
----
-
-## ⚙️ Setup Guide
-
-### 1️⃣ Clone Repository
-
-```bash
-git clone https://github.com/sahillume/Mathithithibala_Bot.git
-cd Mathithithibala_Bot
-```
-
----
-
-### 2️⃣ Install Dependencies
-
-```bash
-npm install
-```
-
----
-
-### 3️⃣ Configure Bot
-
-Edit `config.js`:
+1️⃣ Go to Katabump Panel  
+2️⃣ Upload `Mathithibala_Bot.zip`  
+3️⃣ Extract / Unarchive files  
+4️⃣ Move all files into root directory (`../`)  
+5️⃣ Open `config.js`  
+6️⃣ Edit:
 
 ```js
-module.exports = {
-  botName: "Mathithibala_Bot",
-  ownerName: "Professor Sahil",
-
-  ownerNumbers: [
-    "27835515085"
-  ],
-
-  prefix: ".",
-  sessionID: ""
-};
-```
-
----
-
-### 4️⃣ Start Bot
-
-```bash
-node index.js
-```
-
-📱 Scan QR OR use Pair Code
-⚡ Bot connects instantly
-
----
-
-## 🧠 Commands
-
-| Command | Description         |
-| ------- | ------------------- |
-| .menu   | Show menu           |
-| .ping   | Bot status          |
-| .owner  | Owner info          |
-| .song   | Download music      |
-| .vvpro  | View once unlock    |
-| .getpp  | Get profile picture |
-
----
-
-## 🧠 Pro Systems
-
-* 🔥 Anti-Delete Message Detection
-* 👁️ View-Once Auto Save
-* 🤖 AI Auto Reply System
-* ⚡ Cooldown Protection
-* 📊 Activity Tracking
-* 🔐 Secure Owner System
-
----
-
-## 📊 Performance
-
-* ⚡ Fast Response Speed
-* 🔄 Auto Reconnect
-* 🧠 Smart Command Detection
-* 📦 Lightweight System
-
----
-
-## 👑 Owner
-
-**Professor Sahil**
-📱 WhatsApp: https://wa.me/27835515085
-
----
-
-## ⚠️ Warning
-
-* This bot is for **educational purposes only**
-* Not affiliated with WhatsApp
-* Use responsibly to avoid account bans
-
----
-
-## 📜 License
-
-Licensed under **MIT License**
-
----
-
-## 💎 Support
-
-If you like this project:
-
-⭐ Star the repo
-🍴 Fork it
-📢 Share it
-
----
-
-## 🧑‍💻 Developer
-
-**Professor Sahil**
-
----
-
-## 🔥 Mathithibala_Bot
-
-> The Future of WhatsApp Automation ⚡
-> Powered by Sahil Pro System 🚀
+ownerName: "Your Name",
+ownerNumbers: ["278XXXXXXXX"]
