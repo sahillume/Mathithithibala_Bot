@@ -1,5 +1,5 @@
 /**
- * WhatsApp MD Bot - MAIN CORE (AUTO PAIR FIX)
+ * WhatsApp MD Bot - MAIN CORE (PRO FIXED VERSION)
  */
 
 process.env.PUPPETEER_SKIP_DOWNLOAD = 'true';
@@ -21,10 +21,12 @@ const config = require('./config');
 const handler = require('./handler');
 
 // ===============================
-// 🧠 MEMORY
+// 🧠 MEMORY STORE
 // ===============================
 const messageStore = new Map();
 
+// ===============================
+// 🚀 START BOT FUNCTION
 // ===============================
 async function startBot() {
   try {
@@ -41,19 +43,20 @@ async function startBot() {
     });
 
     // ===============================
-    // 🔐 AUTO PAIR CODE SYSTEM
+    // 🔐 FIXED PAIR CODE SYSTEM (IMPORTANT FIX)
     // ===============================
-    if (!state.creds.registered) {
+    const isRegistered = state?.creds?.registered;
+
+    if (!isRegistered && config.ownerNumbers?.length) {
       const number = config.ownerNumbers[0];
 
-      if (!number) {
-        console.log('❌ No owner number in config.js');
-      } else {
-        setTimeout(async () => {
-          try {
-            const code = await sock.requestPairingCode(number);
+      setTimeout(async () => {
+        try {
+          console.log('🔄 Generating pairing code...');
 
-            console.log(`
+          const code = await sock.requestPairingCode(number);
+
+          console.log(`
 🔑 =========================
    PAIR CODE GENERATED
 =========================
@@ -61,44 +64,42 @@ async function startBot() {
 📱 Number: ${number}
 🔐 Code: ${code}
 
-👉 WhatsApp > Linked Devices
+👉 WhatsApp → Linked Devices
 👉 Link with code
 
 =========================
 `);
-          } catch (err) {
-            console.log('❌ Pairing error:', err.message);
-          }
-        }, 3000);
-      }
+        } catch (err) {
+          console.log('❌ Pairing error:', err?.message);
+        }
+      }, 4000);
     }
 
     // ===============================
-    // 🔗 CONNECTION EVENTS
+    // 🔗 CONNECTION EVENTS (FIXED)
     // ===============================
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect } = update;
 
       if (connection === 'open') {
-        console.log(`✅ ${config.botName} CONNECTED`);
+        console.log(`\n✅ ${config.botName} CONNECTED SUCCESSFULLY\n`);
 
         try {
           await sock.updateProfileStatus(
-            `🤖 ${config.botName} | 👑 ${config.ownerName}`
+            `🤖 ${config.botName} | 👑 ${config.ownerName || 'Owner'}`
           );
         } catch {}
-
       }
 
       if (connection === 'close') {
         const reason = lastDisconnect?.error?.output?.statusCode;
 
         if (reason === DisconnectReason.loggedOut) {
-          console.log('❌ Session expired. Delete session folder.');
+          console.log('❌ Session expired. Delete session folder and restart.');
           process.exit(0);
         }
 
-        console.log('⚠️ Reconnecting...');
+        console.log('⚠️ Reconnecting bot...');
         setTimeout(startBot, 5000);
       }
     });
@@ -118,7 +119,6 @@ async function startBot() {
           const chat = msg.key.remoteJid;
           if (chat === 'status@broadcast') continue;
 
-          // Save message
           if (msg.key?.id) {
             messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
           }
@@ -132,7 +132,7 @@ async function startBot() {
     });
 
     // ===============================
-    // 🗑️ ANTI DELETE (WORKING)
+    // 🗑️ ANTI DELETE SYSTEM (FIXED)
     // ===============================
     sock.ev.on('messages.update', async (updates) => {
       for (const update of updates) {
@@ -140,12 +140,12 @@ async function startBot() {
           if (update.update?.message === null) {
 
             const deletedMsg = messageStore.get(update.key.id);
-            if (!deletedMsg) continue;
+            if (!deletedMsg) return;
 
             const ownerJid = config.ownerNumbers[0] + '@s.whatsapp.net';
 
             await sock.sendMessage(ownerJid, {
-              text: `🚨 DELETED MESSAGE\n📍 ${update.key.remoteJid}`
+              text: `🚨 DELETED MESSAGE DETECTED\n📍 Chat: ${update.key.remoteJid}`
             });
 
             await sock.sendMessage(ownerJid, {
@@ -163,5 +163,5 @@ async function startBot() {
 }
 
 // ===============================
-console.log(`🚀 Starting ${config.botName}`);
+console.log(`🚀 Starting ${config.botName}...`);
 startBot();
