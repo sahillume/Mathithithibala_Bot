@@ -1,7 +1,3 @@
-/**
- * WhatsApp MD Bot - FIXED STABLE CORE
- */
-
 process.env.PUPPETEER_SKIP_DOWNLOAD = 'true';
 
 const pino = require('pino');
@@ -26,41 +22,44 @@ async function startBot() {
       version,
       browser: [config.botName || 'Bot', 'Chrome', '1.0.0'],
       auth: state,
-      printQRInTerminal: true, // QR fallback ON
+      printQRInTerminal: false, // FIXED (manual QR handling)
       logger: pino({ level: 'silent' })
     });
 
-    // ===============================
-    // 🔐 SMART LOGIN SYSTEM (FIXED)
-    // ===============================
+    // =========================
+    // SAFE LOGIN SYSTEM
+    // =========================
     const number = config.ownerNumbers?.[0];
 
-    setTimeout(async () => {
-      try {
-        // If number exists → try pair code
-        if (number) {
-          console.log('🔄 Trying Pair Code Login...');
+    const isRegistered = !!state?.creds?.registered;
 
-          const code = await sock.requestPairingCode(number);
+    if (!isRegistered) {
+      setTimeout(async () => {
+        try {
+          if (number) {
+            console.log('🔄 Trying Pair Code Login...');
 
-          console.log(`
-🔑 PAIR CODE GENERATED
-========================
-📱 Number: ${number}
-🔐 Code: ${code}
-========================
-          `);
-        } else {
-          console.log('📱 No owner number → QR mode active');
+            const code = await sock.requestPairingCode(number);
+
+            console.log(`
+🔑 PAIR CODE
+=====================
+📱 ${number}
+🔐 ${code}
+=====================
+            `);
+          } else {
+            console.log('📱 No owner number → QR mode active');
+          }
+        } catch (err) {
+          console.log('⚠️ Pair failed → QR fallback');
         }
-      } catch (err) {
-        console.log('⚠️ Pair failed → Use QR code instead');
-      }
-    }, 3000);
+      }, 3000);
+    }
 
-    // ===============================
+    // =========================
     // CONNECTION HANDLER
-    // ===============================
+    // =========================
     sock.ev.on('connection.update', (update) => {
       const { connection, lastDisconnect } = update;
 
@@ -72,7 +71,7 @@ async function startBot() {
         const reason = lastDisconnect?.error?.output?.statusCode;
 
         if (reason === DisconnectReason.loggedOut) {
-          console.log('❌ Session expired - delete session folder');
+          console.log('❌ Session expired');
           process.exit(0);
         }
 
@@ -83,9 +82,9 @@ async function startBot() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    // ===============================
+    // =========================
     // MESSAGE HANDLER
-    // ===============================
+    // =========================
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type !== 'notify') return;
 
@@ -94,13 +93,17 @@ async function startBot() {
           if (!msg.message) continue;
 
           const chat = msg.key.remoteJid;
-          if (chat === 'status@broadcast') continue;
+          if (!chat || chat === 'status@broadcast') continue;
 
-          if (msg.key?.id) {
-            messageStore.set(msg.key.id, msg);
-          }
+          messageStore.set(msg.key.id, msg);
 
           await handler.handleMessage(sock, msg);
+
+          // 🔥 MEMORY CLEANUP (PREVENT LEAK)
+          if (messageStore.size > 500) {
+            const firstKey = messageStore.keys().next().value;
+            messageStore.delete(firstKey);
+          }
 
         } catch (err) {
           console.log('Handler Error:', err?.message);
@@ -108,9 +111,9 @@ async function startBot() {
       }
     });
 
-    // ===============================
-    // ANTI DELETE (FIXED SAFE)
-    // ===============================
+    // =========================
+    // ANTI DELETE (SAFE)
+    // =========================
     sock.ev.on('messages.update', async (updates) => {
       for (const u of updates) {
         try {
@@ -122,7 +125,7 @@ async function startBot() {
             const owner = (config.ownerNumbers?.[0] || '') + '@s.whatsapp.net';
 
             await sock.sendMessage(owner, {
-              text: `🚨 Deleted message detected in ${u.key.remoteJid}`
+              text: `🚨 Deleted message in ${u.key.remoteJid}`
             });
 
             await sock.sendMessage(owner, {
@@ -134,7 +137,7 @@ async function startBot() {
     });
 
   } catch (err) {
-    console.log('❌ Fatal error:', err.message);
+    console.log('❌ Fatal error:', err?.message);
     setTimeout(startBot, 5000);
   }
 }
