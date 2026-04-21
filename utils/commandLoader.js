@@ -1,8 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 
+// 🔥 BOT IDENTITY (OPTIONAL DEBUG TAG)
+const BOT_NAME = 'Mathithibala_Bot';
+
 function loadCommands() {
   const commands = new Map();
+  const seenFiles = new Set();
 
   const commandsPath = path.join(__dirname, '../commands');
 
@@ -10,66 +14,107 @@ function loadCommands() {
   // 🧠 CHECK FOLDER
   // ===============================
   if (!fs.existsSync(commandsPath)) {
-    console.log('❌ Commands folder not found!');
+    console.log(`❌ [${BOT_NAME}] Commands folder not found!`);
     return commands;
   }
 
   // ===============================
-  // 🔁 READ DIRECTORY RECURSIVELY
+  // 🔁 SAFE RECURSIVE LOADER
   // ===============================
   function readDir(dir) {
-    const files = fs.readdirSync(dir);
+    let files = [];
+
+    try {
+      files = fs.readdirSync(dir);
+    } catch (err) {
+      console.log(`❌ [${BOT_NAME}] Cannot read directory: ${dir}`);
+      return;
+    }
 
     for (const file of files) {
       const fullPath = path.join(dir, file);
 
+      if (seenFiles.has(fullPath)) continue;
+      seenFiles.add(fullPath);
+
+      let stat;
+
       try {
-        const stat = fs.lstatSync(fullPath);
+        stat = fs.lstatSync(fullPath);
+      } catch (err) {
+        console.log(`⚠️ [${BOT_NAME}] Skip unreadable file: ${file}`);
+        continue;
+      }
 
-        // 📁 If folder → scan inside
-        if (stat.isDirectory()) {
-          readDir(fullPath);
-          continue;
-        }
+      // 📁 Folder recursion
+      if (stat.isDirectory()) {
+        readDir(fullPath);
+        continue;
+      }
 
-        // 📄 Only .js files
-        if (!file.endsWith('.js')) continue;
+      // 📄 Only JS files
+      if (!file.endsWith('.js')) continue;
 
-        // 🧠 CLEAR CACHE (HOT RELOAD SAFE)
+      try {
+        // 🧠 HOT RELOAD SAFE
         delete require.cache[require.resolve(fullPath)];
 
         const command = require(fullPath);
 
-        // ❌ Skip invalid commands (DO NOT BREAK LOOP)
-        if (!command || !command.name) {
-          console.log(`⚠️ Skipped invalid command: ${file}`);
+        // ❌ Validate command
+        if (!command || typeof command !== 'object') {
+          console.log(`⚠️ [${BOT_NAME}] Invalid command file: ${file}`);
           continue;
         }
 
-        // ===============================
-        // 📦 REGISTER MAIN COMMAND
-        // ===============================
-        commands.set(command.name.toLowerCase(), command);
+        if (!command.name) {
+          console.log(`⚠️ [${BOT_NAME}] Missing name: ${file}`);
+          continue;
+        }
+
+        const name = command.name.toLowerCase();
 
         // ===============================
-        // 🔁 REGISTER ALIASES
+        // 🚫 DUPLICATE PROTECTION
+        // ===============================
+        if (commands.has(name)) {
+          console.log(`⚠️ [${BOT_NAME}] Duplicate command ignored: ${name}`);
+          continue;
+        }
+
+        commands.set(name, command);
+
+        // ===============================
+        // 🔁 ALIASES
         // ===============================
         if (Array.isArray(command.aliases)) {
           for (const alias of command.aliases) {
-            commands.set(alias.toLowerCase(), command);
+            const a = alias.toLowerCase();
+
+            if (!commands.has(a)) {
+              commands.set(a, command);
+            }
           }
         }
 
-      } catch (e) {
-        console.log(`❌ Failed loading command: ${file}`);
-        console.log(`   ↳ ${e.message}`);
+      } catch (err) {
+        console.log(`❌ [${BOT_NAME}] Failed loading: ${file}`);
+        console.log(`   ↳ ${err.message}`);
       }
     }
   }
 
   readDir(commandsPath);
 
-  console.log(`📦 Loaded ${commands.size} command entries`);
+  // ===============================
+  // 📦 FINAL REPORT
+  // ===============================
+  console.log(`
+━━━━━━━━━━━━━━━━━━━━
+🤖 ${BOT_NAME}
+📦 Commands Loaded: ${commands.size}
+━━━━━━━━━━━━━━━━━━━━
+`);
 
   return commands;
 }
