@@ -1,9 +1,9 @@
 module.exports = {
 
-  // 👑 OWNER CONFIG (RESTORED)
+  // 👑 OWNER CONFIG
   ownerNumbers: process.env.OWNER_NUMBER
     ? process.env.OWNER_NUMBER.split(',').map(n => n.replace(/\D/g, ''))
-    : ['27835515085'], // ✅ YOUR NUMBER BACK
+    : ['27835515085'],
 
   ownerName: process.env.OWNER_NAME || 'Professor Sahil',
 
@@ -23,15 +23,17 @@ module.exports = {
     fallbackToQR: true
   },
 
-  // 🔗 CHANNEL (FIXED)
-  newsletterJid: '120363406672648713@newsletter',
-
+  // 🔗 CHANNEL (FIXED + CLEAN SINGLE SOURCE)
   channel: {
-    url: 'https://whatsapp.com/channel/0029VbCIUrC4tRrmjdI9QM1x',
-    jid: '120363406672648713@newsletter'
+    jid: '120363406672648713@newsletter',
+    name: 'Mathithibala Channel',
+    url: 'https://whatsapp.com/channel/0029VbCIUrC4tRrmjdI9QM1x'
   },
 
+  // 👉 IMPORTANT (USED BY MENU)
+  newsletterJid: '120363406672648713@newsletter',
   newsletterName: 'Mathithibala Channel',
+
   updateZipUrl: process.env.UPDATE_ZIP_URL || '',
 
   // 🎨 STICKERS
