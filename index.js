@@ -1,19 +1,14 @@
 /**
- * WhatsApp MD Bot - MAIN CORE (PRO MAX FINAL STABLE)
- * BOT: Mathithibala_Bot
- * OWNER: Professor Sahil
+ * WhatsApp MD Bot - MAIN CORE (AUTO PAIR FIX)
  */
 
 process.env.PUPPETEER_SKIP_DOWNLOAD = 'true';
 process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
 
 // ===============================
-// 📦 IMPORTS
-// ===============================
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
 
 const {
   default: makeWASocket,
@@ -22,34 +17,14 @@ const {
   fetchLatestBaileysVersion
 } = require('@whiskeysockets/baileys');
 
-const qrcode = require('qrcode-terminal');
 const config = require('./config');
 const handler = require('./handler');
 
 // ===============================
-// 🧠 MEMORY (ANTI DELETE)
+// 🧠 MEMORY
 // ===============================
 const messageStore = new Map();
 
-// ===============================
-// 🔐 ASK NUMBER (PAIR CODE)
-// ===============================
-const askNumber = () => {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
-  return new Promise((resolve) => {
-    rl.question('📱 Enter WhatsApp number (e.g 27835515085): ', (num) => {
-      rl.close();
-      resolve(num);
-    });
-  });
-};
-
-// ===============================
-// 🤖 START BOT
 // ===============================
 async function startBot() {
   try {
@@ -66,15 +41,19 @@ async function startBot() {
     });
 
     // ===============================
-    // 🔐 PAIR CODE SYSTEM
+    // 🔐 AUTO PAIR CODE SYSTEM
     // ===============================
     if (!state.creds.registered) {
-      const number = await askNumber();
+      const number = config.ownerNumbers[0];
 
-      try {
-        const code = await sock.requestPairingCode(number);
+      if (!number) {
+        console.log('❌ No owner number in config.js');
+      } else {
+        setTimeout(async () => {
+          try {
+            const code = await sock.requestPairingCode(number);
 
-        console.log(`
+            console.log(`
 🔑 =========================
    PAIR CODE GENERATED
 =========================
@@ -87,8 +66,10 @@ async function startBot() {
 
 =========================
 `);
-      } catch (err) {
-        console.log('❌ Pairing error:', err.message);
+          } catch (err) {
+            console.log('❌ Pairing error:', err.message);
+          }
+        }, 3000);
       }
     }
 
@@ -96,20 +77,10 @@ async function startBot() {
     // 🔗 CONNECTION EVENTS
     // ===============================
     sock.ev.on('connection.update', async (update) => {
-      const { connection, qr, lastDisconnect } = update;
-
-      if (qr && state.creds.registered) {
-        console.log('📱 Scan QR if needed:');
-        qrcode.generate(qr, { small: true });
-      }
+      const { connection, lastDisconnect } = update;
 
       if (connection === 'open') {
-        console.clear();
-        console.log(`
-✅ ${config.botName} CONNECTED
-👑 Owner: ${config.ownerName}
-⚡ Pro System Active
-`);
+        console.log(`✅ ${config.botName} CONNECTED`);
 
         try {
           await sock.updateProfileStatus(
@@ -117,29 +88,13 @@ async function startBot() {
           );
         } catch {}
 
-        // 📢 Newsletter
-        try {
-          if (config.newsletterJid) {
-            await sock.sendMessage(config.newsletterJid, {
-              text: `🚀 *${config.botName} ONLINE*
-
-👑 Owner: ${config.ownerName}
-⚡ Status: Active
-🕒 ${new Date().toLocaleString()}
-
-🔥 Sahil Pro System`
-            });
-          }
-        } catch (e) {
-          console.log('Newsletter error:', e.message);
-        }
       }
 
       if (connection === 'close') {
         const reason = lastDisconnect?.error?.output?.statusCode;
 
         if (reason === DisconnectReason.loggedOut) {
-          console.log('❌ Session expired. Delete session & reconnect.');
+          console.log('❌ Session expired. Delete session folder.');
           process.exit(0);
         }
 
@@ -163,12 +118,9 @@ async function startBot() {
           const chat = msg.key.remoteJid;
           if (chat === 'status@broadcast') continue;
 
-          // SAVE MESSAGE
+          // Save message
           if (msg.key?.id) {
-            messageStore.set(
-              msg.key.id,
-              JSON.parse(JSON.stringify(msg))
-            );
+            messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
           }
 
           await handler.handleMessage(sock, msg);
@@ -180,22 +132,20 @@ async function startBot() {
     });
 
     // ===============================
-    // 🗑️ ANTI DELETE (CONTROLLED)
+    // 🗑️ ANTI DELETE (WORKING)
     // ===============================
     sock.ev.on('messages.update', async (updates) => {
       for (const update of updates) {
         try {
-          if (!config.defaultGroupSettings.antidelete) return;
-
           if (update.update?.message === null) {
+
             const deletedMsg = messageStore.get(update.key.id);
             if (!deletedMsg) continue;
 
             const ownerJid = config.ownerNumbers[0] + '@s.whatsapp.net';
 
             await sock.sendMessage(ownerJid, {
-              text: `🚨 *DELETED MESSAGE DETECTED*
-📍 Chat: ${update.key.remoteJid}`
+              text: `🚨 DELETED MESSAGE\n📍 ${update.key.remoteJid}`
             });
 
             await sock.sendMessage(ownerJid, {
@@ -206,50 +156,6 @@ async function startBot() {
       }
     });
 
-    // ===============================
-    // 👁️ VIEW ONCE DETECTION
-    // ===============================
-    sock.ev.on('messages.upsert', async ({ messages }) => {
-      for (const msg of messages) {
-        try {
-          if (!config.defaultGroupSettings.antiviewonce) return;
-
-          const m = msg.message;
-          if (!m) continue;
-
-          const isViewOnce =
-            m?.viewOnceMessageV2 ||
-            m?.viewOnceMessageV2Extension ||
-            m?.viewOnceMessage;
-
-          if (!isViewOnce) continue;
-
-          const ownerJid = config.ownerNumbers[0] + '@s.whatsapp.net';
-
-          await sock.sendMessage(ownerJid, {
-            text: `👁️ *VIEW-ONCE DETECTED*
-📍 From: ${msg.key.remoteJid}`
-          });
-
-          await sock.sendMessage(ownerJid, {
-            forward: msg
-          });
-
-        } catch {}
-      }
-    });
-
-    // ===============================
-    // 📦 COMMAND CHECK
-    // ===============================
-    const commandsPath = path.join(__dirname, 'commands');
-
-    if (!fs.existsSync(commandsPath)) {
-      console.log('❌ Commands folder missing!');
-    } else {
-      console.log('📦 Commands loaded successfully');
-    }
-
   } catch (err) {
     console.log('❌ Startup error:', err?.message);
     setTimeout(startBot, 5000);
@@ -257,12 +163,5 @@ async function startBot() {
 }
 
 // ===============================
-// 🚀 START
-// ===============================
-console.log(`
-🚀 Starting ${config.botName}
-👑 Owner: ${config.ownerName}
-🔥 Loading Pro System...
-`);
-
+console.log(`🚀 Starting ${config.botName}`);
 startBot();
