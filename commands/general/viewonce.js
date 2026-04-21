@@ -1,16 +1,11 @@
-/**
- * VVPRO - Mathithibala Pro ViewOnce Unlock System
- * Powered by Professor Sahil
- */
-
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 
 module.exports = {
-  name: 'vvpro',
-  aliases: ['viewoncepro', 'vv', 'readvo', 'unlockvo'],
-  category: 'pro',
-  description: 'Unlock and display ViewOnce messages (Pro System)',
-  usage: '.vvpro (reply to view-once message)',
+  name: 'viewonce',
+  aliases: ['readvo', 'vv', 'readviewonce'],
+  category: 'general',
+  description: 'Unlock view-once messages',
+  usage: '.viewonce (reply to view-once)',
 
   async execute(sock, msg, args) {
     try {
@@ -19,96 +14,86 @@ module.exports = {
       const ctx =
         msg.message?.extendedTextMessage?.contextInfo ||
         msg.message?.imageMessage?.contextInfo ||
-        msg.message?.videoMessage?.contextInfo ||
-        msg.message?.buttonsResponseMessage?.contextInfo ||
-        msg.message?.listResponseMessage?.contextInfo;
+        msg.message?.videoMessage?.contextInfo;
 
-      if (!ctx?.quotedMessage) {
-        return await sock.sendMessage(chatId, {
-          text: '🧠 *VVPRO SYSTEM*\n\n❌ Please reply to a view-once message to unlock it.'
-        }, { quoted: msg });
-      }
+      if (!ctx?.quotedMessage) return;
 
       const quotedMsg = ctx.quotedMessage;
 
-      const hasViewOnce =
+      const isViewOnce =
         quotedMsg.viewOnceMessageV2 ||
-        quotedMsg.viewOnceMessageV2Extension ||
         quotedMsg.viewOnceMessage ||
         quotedMsg.imageMessage?.viewOnce ||
         quotedMsg.videoMessage?.viewOnce ||
         quotedMsg.audioMessage?.viewOnce;
 
-      if (!hasViewOnce) {
-        return await sock.sendMessage(chatId, {
-          text: '❌ This message is not a view-once media.'
-        }, { quoted: msg });
-      }
+      if (!isViewOnce) return;
 
       let actualMsg = null;
-      let mtype = null;
 
-      if (quotedMsg.viewOnceMessageV2Extension?.message) {
-        actualMsg = quotedMsg.viewOnceMessageV2Extension.message;
-        mtype = Object.keys(actualMsg)[0];
-
-      } else if (quotedMsg.viewOnceMessageV2?.message) {
+      if (quotedMsg.viewOnceMessageV2?.message) {
         actualMsg = quotedMsg.viewOnceMessageV2.message;
-        mtype = Object.keys(actualMsg)[0];
-
       } else if (quotedMsg.viewOnceMessage?.message) {
         actualMsg = quotedMsg.viewOnceMessage.message;
-        mtype = Object.keys(actualMsg)[0];
-
       } else if (quotedMsg.imageMessage?.viewOnce) {
         actualMsg = { imageMessage: quotedMsg.imageMessage };
-        mtype = 'imageMessage';
-
       } else if (quotedMsg.videoMessage?.viewOnce) {
         actualMsg = { videoMessage: quotedMsg.videoMessage };
-        mtype = 'videoMessage';
-
       } else if (quotedMsg.audioMessage?.viewOnce) {
         actualMsg = { audioMessage: quotedMsg.audioMessage };
-        mtype = 'audioMessage';
       }
 
-      if (!actualMsg || !mtype) {
-        return await sock.sendMessage(chatId, {
-          text: '❌ Unsupported view-once format.'
-        }, { quoted: msg });
-      }
+      if (!actualMsg) return;
+
+      const mtype = Object.keys(actualMsg)[0];
+      const media = actualMsg[mtype];
 
       const type =
-        mtype.includes('image') ? 'image'
-        : mtype.includes('video') ? 'video'
-        : 'audio';
+        mtype === 'imageMessage'
+          ? 'image'
+          : mtype === 'videoMessage'
+          ? 'video'
+          : 'audio';
 
-      const stream = await downloadContentFromMessage(actualMsg[mtype], type);
+      const stream = await downloadContentFromMessage(media, type);
 
       let buffer = Buffer.from([]);
       for await (const chunk of stream) {
         buffer = Buffer.concat([buffer, chunk]);
       }
 
-      const caption = actualMsg[mtype]?.caption || '';
+      const caption = media?.caption || '';
 
-      // 📤 SEND MEDIA
-      if (type === 'video') {
+      // 🔥 PROFESSIONAL BRAND MESSAGE
+      const header =
+`╭━━『 🔓 *VIEW ONCE UNLOCKED* 』━━╮
+📌 *View Once has been automatically unlocked*
+🤖 *By Mathithibala Bot System*
+──────────────────────`;
+
+      const footer =
+`──────────────────────
+💡 Powered by Mathithibala Hacker Bot
+⚡ Status: Successfully Processed
+╰━━━━━━━━━━━━━━━━━━━━╯`;
+
+      const finalCaption = `${header}\n\n${caption}\n\n${footer}`;
+
+      // 📸 RESEND MEDIA WITH BRANDING
+      if (mtype === 'imageMessage') {
+        await sock.sendMessage(chatId, {
+          image: buffer,
+          caption: finalCaption
+        }, { quoted: msg });
+
+      } else if (mtype === 'videoMessage') {
         await sock.sendMessage(chatId, {
           video: buffer,
-          caption,
+          caption: finalCaption,
           mimetype: 'video/mp4'
         }, { quoted: msg });
 
-      } else if (type === 'image') {
-        await sock.sendMessage(chatId, {
-          image: buffer,
-          caption,
-          mimetype: 'image/jpeg'
-        }, { quoted: msg });
-
-      } else if (type === 'audio') {
+      } else if (mtype === 'audioMessage') {
         await sock.sendMessage(chatId, {
           audio: buffer,
           ptt: true,
@@ -116,25 +101,8 @@ module.exports = {
         }, { quoted: msg });
       }
 
-      // 🧠 FINAL PRO MESSAGE (YOUR REQUEST)
-      await sock.sendMessage(chatId, {
-        text:
-`╭━━『 🔓 VVPRO SYSTEM 』━━╮
-✅ ViewOnce Successfully Unlocked
-
-🤖 Powered by: Mathithibala_Bot Pro
-👑 Developed by: Professor Sahil
-
-⚡ Status: Media Retrieved Successfully
-╰━━━━━━━━━━━━━━━━━━`
-      });
-
     } catch (error) {
-      console.error('VVPRO Error:', error);
-
-      await sock.sendMessage(msg.key.remoteJid, {
-        text: '❌ VVPRO system error occurred.'
-      }, { quoted: msg });
+      console.log('ViewOnce error:', error);
     }
   }
 };
